@@ -14,7 +14,9 @@ cd tools/telemetry-proxy
 npx wrangler deploy
 ```
 
-然后在 Cloudflare 控制台把一个自定义域（例如 `t.example.com`）绑到这个 Worker，或者取消 `wrangler.toml` 里 `[[routes]]` 的注释。
+**已部署地址**：`https://tidy-telemetry.<subdomain>.workers.dev`
+
+⚠️ 正式发版前请绑自定义域。`*.workers.dev` 在国内经常不通，而"国内可达"正是加这一跳的主要理由之一；用默认域名等于这一跳白加。在 Cloudflare 控制台把域名绑到这个 Worker，或取消 `wrangler.toml` 里 `[[routes]]` 的注释。
 
 ## 接到桌面端
 
@@ -31,13 +33,18 @@ make release
 ## 验证
 
 ```bash
-curl -X POST https://t.example.com/batch/ \
+curl -X POST https://tidy-telemetry.<subdomain>.workers.dev/batch/ \
   -H 'content-type: application/json' \
   -d '{"api_key":"phc_xxx","batch":[{"event":"app_launched","properties":{"distinct_id":"smoke-test"}}]}'
 # 期望：ok
 ```
 
 `GET` 任意路径应当返回 404 —— 这个端点不对外提供任何可读内容。
+
+**⚠️ 200 不代表 key 是对的。** PostHog 的摄取端点是异步的：API key 写错了它照样返回
+200，然后把事件丢掉。上面这个 curl 只能证明"代理转发通了"，不能证明 key 正确。
+唯一的验证方式是去 PostHog 的 Activity / Events 页面看事件有没有真的进来。
+排查"没数据"时按这个顺序查：代理返回 200 → PostHog 是否收到 → key 是否属于该项目。
 
 ## 采了什么
 
