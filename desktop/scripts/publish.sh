@@ -54,6 +54,11 @@ else
   echo "⚠ 非 universal 构建：latest.json 只覆盖 ${TARGETS[0]}，另一种架构的用户收不到更新。"
 fi
 
+# 站点的下载按钮指向一个**固定文件名**的副本。带版本号的文件名在
+# /releases/latest/download/ 下每次发版都会失效，那样站点就得跟着改一次。
+STABLE_DMG="$BUNDLE/dmg/Tidy.dmg"
+cp -f "$DMG" "$STABLE_DMG"
+
 NOTES="$( [ -n "${NOTES_FILE:-}" ] && cat "$NOTES_FILE" || echo "Tidy $VERSION" )"
 
 LATEST_JSON="$BUNDLE/latest.json"
@@ -90,13 +95,14 @@ cat "$LATEST_JSON"
 
 if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
   echo "▶ 更新已存在的 release $TAG"
-  gh release upload "$TAG" "$DMG" "$TARBALL" "$SIGFILE" "$LATEST_JSON" \
+  gh release upload "$TAG" "$DMG" "$STABLE_DMG" "$TARBALL" "$SIGFILE" "$LATEST_JSON" \
     --repo "$REPO" --clobber
 else
   echo "▶ 创建 release $TAG"
-  gh release create "$TAG" "$DMG" "$TARBALL" "$SIGFILE" "$LATEST_JSON" \
+  gh release create "$TAG" "$DMG" "$STABLE_DMG" "$TARBALL" "$SIGFILE" "$LATEST_JSON" \
     --repo "$REPO" --title "Tidy $VERSION" --notes "$NOTES"
 fi
 
 echo "✅ 已发布：https://github.com/$REPO/releases/tag/$TAG"
 echo "   自更新 feed：https://github.com/$REPO/releases/latest/download/latest.json"
+echo "   固定下载地址：https://github.com/$REPO/releases/latest/download/Tidy.dmg"

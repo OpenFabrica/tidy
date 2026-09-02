@@ -33,7 +33,7 @@ const STRINGS = {
   zh: {
     htmlLang: 'zh-Hans',
     ogLocale: 'zh_CN',
-    nav: { features: '功能', safety: '安全', blog: 'Blog', cta: '查看源码', skip: '跳到正文', main: '主导航' },
+    nav: { features: '功能', safety: '安全', blog: 'Blog', cta: '下载', skip: '跳到正文', main: '主导航' },
     blogTitle: 'Tidy Blog',
     blogHead: '关于 macOS 空间、卸载与维护的记录',
     blogLead: '写给想弄清楚「这东西到底能不能删」的人。每篇文章先给出脱离 Tidy 也成立的答案，再说明 Tidy 在哪一步缩短了流程。',
@@ -49,7 +49,7 @@ const STRINGS = {
     otherLang: 'English',
     langNote: (t) => `English version: ${t}`,
     cta: {
-      source: { h: '想确认这些说法？源码是公开的', p: 'Tidy 的删除边界、保护名单与日志格式全部可以在仓库里直接查证。目前还没有发布安装包，需要自行构建。', label: '在 GitHub 上查看源码', href: 'https://github.com/rambocode/tidy' },
+      source: { h: '想确认这些说法？源码是公开的', p: 'Tidy 的删除边界、保护名单与日志格式全部可以在仓库里直接查证。安装包已签名并通过 Apple 公证，也可以自己编译一份对照。', label: '在 GitHub 上查看源码', href: 'https://github.com/rambocode/tidy' },
       issues: { h: '遇到看不懂的拒绝原因？', p: '贴上拒绝码和 ~/Library/Logs/mole 里对应的几行，比描述现象更容易定位。', label: '在 GitHub 提交问题', href: 'https://github.com/rambocode/tidy/issues' },
     },
     categories: { space: '空间与清理', apps: '软件管理', maintenance: '系统维护', safety: '安全边界' },
@@ -58,7 +58,7 @@ const STRINGS = {
   en: {
     htmlLang: 'en',
     ogLocale: 'en_US',
-    nav: { features: 'Features', safety: 'Safety', blog: 'Blog', cta: 'View source', skip: 'Skip to content', main: 'Main' },
+    nav: { features: 'Features', safety: 'Safety', blog: 'Blog', cta: 'Download', skip: 'Skip to content', main: 'Main' },
     blogTitle: 'Tidy Blog',
     blogHead: 'Notes on macOS space, uninstalls, and maintenance',
     blogLead: 'For people trying to work out whether a thing is actually safe to delete. Every article gives a standalone answer first, then says where Tidy shortens the work.',
@@ -74,7 +74,7 @@ const STRINGS = {
     otherLang: '中文',
     langNote: (t) => `中文版：${t}`,
     cta: {
-      source: { h: 'Want to check these claims? The source is public', p: "Tidy's deletion boundary, protection lists, and log formats can all be verified in the repository. No installer has shipped yet, so you build it yourself.", label: 'View the source on GitHub', href: 'https://github.com/rambocode/tidy' },
+      source: { h: 'Want to check these claims? The source is public', p: "Tidy's deletion boundary, protection lists, and log formats can all be verified in the repository. The installer is signed and notarized, and you can always compile your own copy to compare.", label: 'View the source on GitHub', href: 'https://github.com/rambocode/tidy' },
       issues: { h: 'A refusal reason that makes no sense?', p: 'Paste the refusal code together with the matching lines from ~/Library/Logs/mole; that locates it far faster than a description.', label: 'Open an issue on GitHub', href: 'https://github.com/rambocode/tidy/issues' },
     },
     categories: { space: 'Space & cleaning', apps: 'App management', maintenance: 'Maintenance', safety: 'Safety boundary' },
@@ -137,7 +137,7 @@ function header(locale, { currentBlog = false, localeTargets = null } = {}) {
       <a href="/${locale}/#trust">${s.nav.safety}</a>
       <a href="/${locale}/blog/"${currentBlog ? ' aria-current="page"' : ''}>${s.nav.blog}</a>
       <span class="lang-switch"><a href="${target('zh')}"${locale === 'zh' ? ' aria-current="true"' : ''}>中</a>/<a href="${target('en')}"${locale === 'en' ? ' aria-current="true"' : ''}>EN</a></span>
-      <a class="btn btn-primary" href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">${s.nav.cta}</a>
+      <a class="btn btn-primary" href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">${s.nav.cta}</a>
     </nav>
   </div>
 </header>`

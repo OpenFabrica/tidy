@@ -50,11 +50,11 @@
     <nav class="site-nav" aria-label="Main">
       <a href="#capabilities">Features</a>
       <a href="#trust">Safety</a>
-      <a href="#build" data-optional>Build</a>
+      <a href="#build" data-optional>Download</a>
       <a href="#faq" data-optional>FAQ</a>
       <a href="/en/blog/">Blog</a>
       <span class="lang-switch"><a href="/zh/">中</a>/<a href="/en/" aria-current="true">EN</a></span>
-      <a class="btn btn-primary" href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">View source</a>
+      <a class="btn btn-primary" href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">Download</a>
     </nav>
   </div>
 </header>
@@ -67,14 +67,14 @@
       <h1>See clearly. Tidy safely.</h1>
       <p class="lead">Tidy is Mole's open-source macOS desktop app. Cleaning, uninstalling, optimizing, and disk analysis all put the full candidate list in front of you first. Whatever you tick is exactly what gets removed — the architecture makes one extra file impossible.</p>
       <div class="hero-actions">
-        <a class="btn btn-primary btn-lg" href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">View the source on GitHub</a>
-        <a class="btn btn-secondary btn-lg" href="#build">How to build it</a>
+        <a class="btn btn-primary btn-lg" href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">Download Tidy 0.1.0</a>
+        <a class="btn btn-secondary btn-lg" href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">View the source on GitHub</a>
       </div>
       <p class="requirements">
-        <span>macOS</span><span>Rust stable + Node ≥ 20</span><span>English / 中文</span><span>Version 0.1.0</span>
+        <span>macOS 11+</span><span>Universal (Intel &amp; Apple silicon)</span><span>English / 中文</span><span>Version 0.1.0 · 17 MB</span>
       </p>
       <p class="notice">
-        <strong>In development.</strong> <code>bundle.active</code> is still <code>false</code> in the repository; no prebuilt installer has been released and there is no download page. For now the way to run it is to clone the repository and build it yourself. This section changes when that does.
+        <strong>0.1.0 is the first public release.</strong> The installer is signed with a Developer ID and notarized by Apple, so it opens without the "unidentified developer" warning. The app checks for its own updates and sends anonymous usage statistics — both can be turned off in Settings, and the <a href="/en/privacy/">privacy page</a> lists every field collected. <a href="https://github.com/rambocode/tidy/releases" target="_blank" rel="noopener noreferrer">All releases</a>
       </p>
 
       <figure class="shot shot-hero">
@@ -309,8 +309,8 @@
   <section id="build">
     <div class="wrap">
       <p class="eyebrow">Getting it</p>
-      <h2>Open source, and for now you build it yourself</h2>
-      <p class="lead section-intro">The source lives in the <code>desktop/</code> directory of <a href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">github.com/rambocode/tidy</a>. You need Rust stable and Node ≥ 20.</p>
+      <h2>Download it, or compile your own copy</h2>
+      <p class="lead section-intro">For most people the <a href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">DMG</a> is all you need. If you would rather verify for yourself exactly what it deletes, the source lives in the <code>desktop/</code> directory of <a href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">github.com/rambocode/tidy</a>; you need Rust stable and Node ≥ 20.</p>
       <pre><code>git clone https://github.com/rambocode/tidy.git
 cd tidy/desktop
 
@@ -333,7 +333,7 @@ cd ui &amp;&amp; npm install &amp;&amp; npx tauri dev</code></pre>
       <div class="faq" style="margin-top:28px">
         <details>
           <summary>Can I download an installer today?</summary>
-          <p>No. The repository is at 0.1.0 with <code>bundle.active</code> still <code>false</code>. No dmg has been released and there is no signing or notarization pipeline yet, so building from source is the only way to run it. This page changes when that changes.</p>
+          <p>Yes. <a href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">Download the 0.1.0 DMG</a> (17 MB, Universal, runs on both Intel and Apple silicon, needs macOS 11 or later). It is signed with a Developer ID and notarized by Apple, so it opens without a Gatekeeper prompt. The app also checks for its own updates.</p>
         </details>
         <details>
           <summary>Can I get something back if I delete the wrong thing?</summary>
@@ -395,7 +395,7 @@ cd ui &amp;&amp; npm install &amp;&amp; npx tauri dev</code></pre>
         <ul>
           <li><a href="#capabilities">Features</a></li>
           <li><a href="#trust">Safety boundary</a></li>
-          <li><a href="#build">Build it</a></li>
+          <li><a href="#build">Download &amp; build</a></li>
           <li><a href="#faq">FAQ</a></li>
         </ul>
       </div>

@@ -38,7 +38,8 @@
   <p>Tidy is open source. The source lives in the <code>desktop/</code> directory of <a href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">github.com/rambocode/tidy</a>. Copying, modification, and redistribution are governed by the LICENSE file in that repository; this page neither constitutes nor replaces that license.</p>
 
   <h2>Current release status</h2>
-  <p>As of this update the project is at version 0.1.0 with <code>bundle.active</code> set to <code>false</code> in <code>tauri.conf.json</code>. No prebuilt installer has been released and there is no code signing or notarization pipeline. Any download claiming to be an official Tidy installer does not come from this project.</p>
+  <p>The current version is 0.1.0. The installer is signed with a Developer ID (team <code>HQ537XMLJY</code>) and notarized by Apple.</p>
+  <p><strong>There is exactly one official channel</strong>: <a href="https://github.com/rambocode/tidy/releases" target="_blank" rel="noopener noreferrer">github.com/rambocode/tidy/releases</a>. A Tidy installer obtained anywhere else was not distributed by this project — do not run it. This is a tool that deletes files, so a copy of unknown origin carries real risk. You can verify the signing team yourself with <code>codesign -dv --verbose=4 /Applications/Tidy.app</code> and check it reads <code>HQ537XMLJY</code>.</p>
 
   <h2>Disclaimer</h2>
   <p>The software is provided "as is", without warranty of any kind, express or implied, including merchantability, fitness for a particular purpose, and non-infringement. Tidy performs destructive operations — deleting files and changing system maintenance settings. User-scope deletions route to the Trash by default and execution is limited to the candidates you selected in the preview, but you should still keep a working backup. The authors accept no liability for data loss or system problems arising from use of the software.</p>

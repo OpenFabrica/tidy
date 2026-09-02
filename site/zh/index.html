@@ -50,11 +50,11 @@
     <nav class="site-nav" aria-label="主导航">
       <a href="#capabilities">功能</a>
       <a href="#trust">安全</a>
-      <a href="#build" data-optional>构建</a>
+      <a href="#build" data-optional>下载</a>
       <a href="#faq" data-optional>常见问题</a>
       <a href="/zh/blog/">Blog</a>
       <span class="lang-switch"><a href="/zh/" aria-current="true">中</a>/<a href="/en/">EN</a></span>
-      <a class="btn btn-primary" href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">查看源码</a>
+      <a class="btn btn-primary" href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">下载</a>
     </nav>
   </div>
 </header>
@@ -67,14 +67,14 @@
       <h1>看得清楚，清得放心</h1>
       <p class="lead">Tidy 是 Mole 的开源 macOS 桌面端。清理、卸载、优化、磁盘分析都先把完整候选清单摆在你面前；你勾了什么，它就只删什么——工程上做不到多删一个文件。</p>
       <div class="hero-actions">
-        <a class="btn btn-primary btn-lg" href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">在 GitHub 上查看源码</a>
-        <a class="btn btn-secondary btn-lg" href="#build">怎么自行构建</a>
+        <a class="btn btn-primary btn-lg" href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">下载 Tidy 0.1.0</a>
+        <a class="btn btn-secondary btn-lg" href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">在 GitHub 上查看源码</a>
       </div>
       <p class="requirements">
-        <span>macOS</span><span>Rust stable + Node ≥ 20</span><span>中文 / English</span><span>版本 0.1.0</span>
+        <span>macOS 11+</span><span>Universal（Intel 与 Apple 芯片）</span><span>中文 / English</span><span>版本 0.1.0 · 17 MB</span>
       </p>
       <p class="notice">
-        <strong>开发中。</strong>仓库里 <code>bundle.active</code> 仍为 <code>false</code>，项目还没有发布过预编译安装包，也没有下载页。现在能做的是把仓库 clone 下来自行构建运行。这一段会随发布状态更新。
+        <strong>0.1.0 是第一个公开版本。</strong>安装包已用 Developer ID 签名并通过 Apple 公证，打开时不会出现「无法验证开发者」。应用会检查自身更新，也会发送匿名使用统计——两者都能在设置里关掉，采集了什么见<a href="/zh/privacy/">隐私说明</a>。<a href="https://github.com/rambocode/tidy/releases" target="_blank" rel="noopener noreferrer">历史版本</a>
       </p>
 
       <figure class="shot shot-hero">
@@ -309,8 +309,8 @@
   <section id="build">
     <div class="wrap">
       <p class="eyebrow">获取方式</p>
-      <h2>开源，目前需要自行构建</h2>
-      <p class="lead section-intro">源码在 <a href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">github.com/rambocode/tidy</a> 的 <code>desktop/</code> 目录。需要 Rust stable 与 Node ≥ 20。</p>
+      <h2>直接下载，或者自己编译一份</h2>
+      <p class="lead section-intro">多数人<a href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">下载 DMG</a> 就够了。想亲自确认它到底删什么的话，源码在 <a href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">github.com/rambocode/tidy</a> 的 <code>desktop/</code> 目录，需要 Rust stable 与 Node ≥ 20。</p>
       <pre><code>git clone https://github.com/rambocode/tidy.git
 cd tidy/desktop
 
@@ -333,7 +333,7 @@ cd ui &amp;&amp; npm install &amp;&amp; npx tauri dev</code></pre>
       <div class="faq" style="margin-top:28px">
         <details>
           <summary>现在能直接下载安装包吗？</summary>
-          <p>不能。仓库当前版本是 0.1.0，<code>tauri.conf.json</code> 里 <code>bundle.active</code> 仍为 <code>false</code>，没有发布过 dmg，也没有签名与公证流程。要用只能自行构建。发布之后这一页会更新。</p>
+          <p>能。<a href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">下载 0.1.0 的 DMG</a>（17 MB，Universal，同时支持 Intel 与 Apple 芯片，需要 macOS 11 或更新版本）。安装包用 Developer ID 签名并通过 Apple 公证，首次打开不会被拦。应用也会自己检查更新。</p>
         </details>
         <details>
           <summary>删错了能找回来吗？</summary>
@@ -364,7 +364,7 @@ cd ui &amp;&amp; npm install &amp;&amp; npx tauri dev</code></pre>
       <p class="eyebrow">反馈</p>
       <h2>遇到拒绝原因看不懂的地方，直接开 issue</h2>
       <div class="feedback">
-        <p>项目还没有发布安装包，也就还没有公开的用户评价，所以这里不会摆任何推荐语。现在唯一的反馈渠道是 GitHub Issues：贴上你看到的拒绝原因（<code>probe_failed</code>、<code>requires_admin</code> 等）和 <code>~/Library/Logs/mole</code> 里对应的那几行，比描述现象更容易定位。</p>
+        <p>0.1.0 刚发布，还没有积累公开的用户评价，所以这里不会摆任何推荐语。反馈渠道是 GitHub Issues：贴上你看到的拒绝原因（<code>probe_failed</code>、<code>requires_admin</code> 等）和 <code>~/Library/Logs/mole</code> 里对应的那几行，比描述现象更容易定位。</p>
         <p style="margin-bottom:0"><a class="btn btn-secondary" href="https://github.com/rambocode/tidy/issues" target="_blank" rel="noopener noreferrer">在 GitHub 提交问题</a></p>
       </div>
     </div>
@@ -395,7 +395,7 @@ cd ui &amp;&amp; npm install &amp;&amp; npx tauri dev</code></pre>
         <ul>
           <li><a href="#capabilities">功能</a></li>
           <li><a href="#trust">安全边界</a></li>
-          <li><a href="#build">自行构建</a></li>
+          <li><a href="#build">下载与构建</a></li>
           <li><a href="#faq">常见问题</a></li>
         </ul>
       </div>
