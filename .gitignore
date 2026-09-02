@@ -14,6 +14,9 @@ site/tools/node_modules/
 # wrangler 的本地构建/状态缓存
 tools/telemetry-proxy/.wrangler/
 
+# 站点部署用的临时暂存目录（make site-deploy 生成后即删）
+.site-dist/
+
 # Editor / logs
 *.log
 .vscode/

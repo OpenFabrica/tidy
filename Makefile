@@ -1,6 +1,6 @@
 # Tidy standalone Makefile — adapted from the original Mole repo's desktop-*
 # targets so the README's `make desktop-*` commands also work in this checkout.
-.PHONY: dev build bundle release publish check desktop-dev desktop-build desktop-bundle desktop-check
+.PHONY: dev build bundle release publish site-deploy check desktop-dev desktop-build desktop-bundle desktop-check
 
 # The tauri CLI must run from desktop/ (it locates src-tauri/tauri.conf.json
 # by scanning subfolders of the invocation directory).
@@ -24,6 +24,21 @@ release:
 # 把 make release 的产物发到 GitHub Releases，并生成自更新 feed。
 publish:
 	desktop/scripts/publish.sh
+
+# 部署站点到 Cloudflare Pages。
+#
+# 不直接上传 site/：那个目录里混着可部署产物和源材料——tools/（13MB 的
+# node_modules）、content/（文章 Markdown 源）、docs/（站点规格）、.blog-build/
+# （中间产物）都不该出现在公网上。先 rsync 出一份干净的再传。
+site-deploy:
+	rm -rf .site-dist && mkdir -p .site-dist
+	rsync -a \
+	  --exclude 'tools/' --exclude 'content/' --exclude 'docs/' \
+	  --exclude '.blog-build/' --exclude 'README.md' --exclude '.gitignore' \
+	  site/ .site-dist/
+	npx --yes wrangler@latest pages deploy .site-dist \
+	  --project-name=tidy-site --branch=main --commit-dirty=true
+	rm -rf .site-dist
 
 check:
 	cd desktop && cargo fmt --check && cargo clippy --workspace -- -D warnings && cargo test --workspace
