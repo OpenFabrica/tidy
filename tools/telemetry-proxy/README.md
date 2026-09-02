@@ -48,6 +48,31 @@ curl -X POST https://t.tandem-clip.com/batch/ \
 唯一的验证方式是去 PostHog 的 Activity / Events 页面看事件有没有真的进来。
 排查"没数据"时按这个顺序查：代理返回 200 → PostHog 是否收到 → key 是否属于该项目。
 
+## 怎么确认事件真的到了
+
+代理返回 200 只说明"转发通了"。要确认事件落进 PostHog，用 Personal API Key 查
+（`.env` 里的 `POSTHOG_PERSONAL_KEY` / `POSTHOG_PROJECT_ID`）：
+
+```bash
+set -a; . ./.env; set +a
+curl -s -X POST -H "Authorization: Bearer $POSTHOG_PERSONAL_KEY" \
+  -H 'content-type: application/json' \
+  "https://us.posthog.com/api/projects/$POSTHOG_PROJECT_ID/query/" \
+  -d '{"query":{"kind":"HogQLQuery","query":"SELECT distinct_id, event, timestamp FROM events WHERE properties.$lib = '"'"'tidy'"'"' ORDER BY timestamp DESC LIMIT 20"}}'
+```
+
+`properties.$lib = 'tidy'` 是 Tidy 事件的筛选条件——这个 PostHog 项目可能同时
+装着别的应用的数据，不加这个过滤会看到不属于 Tidy 的事件。
+
+**两个排查时容易被误导的地方：**
+
+1. **没有 `telemetry-queue.json` 不等于发送成功。** 那个文件只在发送**失败**时
+   才写。发送还没触发（应用启动不到 60 秒）时同样没有文件。别拿它当成功信号。
+2. **SIGTERM / 强制退出会丢掉内存里还没发的事件。** 退出时的 flush 挂在 Tauri 的
+   `RunEvent::Exit` 上，只有正常退出（Cmd+Q）才会走到；`kill` 掉的进程最多丢 60
+   秒的事件。这是可接受的取舍——遥测不值得为它装信号处理器——但测试时要注意：
+   跑不满一个 60 秒窗口就 kill，会看起来像"发送失败"。
+
 ## 采了什么
 
 字段清单以 `site/{zh,en}/privacy` 为准，代码在 `desktop/crates/mole-telemetry/src/event.rs`。改动采集面时，这三处必须一起改。
