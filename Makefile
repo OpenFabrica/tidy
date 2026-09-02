@@ -4,8 +4,15 @@
 
 # The tauri CLI must run from desktop/ (it locates src-tauri/tauri.conf.json
 # by scanning subfolders of the invocation directory).
+# Dev picks a free localhost port each run (5173 is often taken by another
+# Vite project) and hands the SAME port to Vite (TAURI_DEV_PORT, read by
+# ui/vite.config.ts) and to the Tauri CLI (devUrl override), so the two never
+# disagree. Set TAURI_DEV_PORT yourself to pin one.
 dev:
-	cd desktop && npm install --prefix ui && ui/node_modules/.bin/tauri dev
+	cd desktop && npm install --prefix ui && \
+	PORT=$${TAURI_DEV_PORT:-$$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')} && \
+	echo "dev server on http://localhost:$$PORT" && \
+	TAURI_DEV_PORT=$$PORT ui/node_modules/.bin/tauri dev --config "{\"build\":{\"devUrl\":\"http://localhost:$$PORT\"}}"
 
 build:
 	cd desktop && npm ci --prefix ui && ui/node_modules/.bin/tauri build --no-bundle
