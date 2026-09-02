@@ -46,6 +46,13 @@ for candidate in "${TAURI_SIGNING_PRIVATE_KEY_PATH:-}" ".tauri/tidy-updater.key"
   fi
 done
 export TAURI_SIGNING_PRIVATE_KEY_PASSWORD="${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}"
+# 这个 tauri 版本只读 TAURI_SIGNING_PRIVATE_KEY，忽略 ..._PATH。传密钥内容而不是
+# 路径，两种版本都吃得下；不这么做的话，构建会一路跑到最后（含公证）才报
+# "A public key has been found, but no private key"。
+if [ -n "${TAURI_SIGNING_PRIVATE_KEY_PATH:-}" ] && [ -f "$TAURI_SIGNING_PRIVATE_KEY_PATH" ]; then
+  TAURI_SIGNING_PRIVATE_KEY="$(cat "$TAURI_SIGNING_PRIVATE_KEY_PATH")"
+  export TAURI_SIGNING_PRIVATE_KEY
+fi
 if [ -z "${TAURI_SIGNING_PRIVATE_KEY_PATH:-}" ] || [ ! -f "$TAURI_SIGNING_PRIVATE_KEY_PATH" ]; then
   echo "⚠ 找不到更新签名私钥（desktop/.tauri/ 与 ~/.tauri/ 都没有）—— 这次不会产出自更新包。" >&2
   unset TAURI_SIGNING_PRIVATE_KEY_PATH
