@@ -26,21 +26,22 @@ site/
   robots.txt sitemap.xml  生成物 / 静态文件
 ```
 
-## 上线前必须替换的一项
+## 域名
 
-`https://tidy.example.com` 是**占位域名**。确定正式域名后替换这三处：
+正式域名是 `https://tidy.talkwork.vip`（域名托管在阿里云 DNS）。
+
+如果要再改域名，替换这三处后重新生成：
 
 1. `blog.config.json` 的 `siteUrl`
 2. `robots.txt` 里的 Sitemap 地址
 3. 手写页面（`index.html`、`zh|en/index.html`、`zh|en/privacy/`、`zh|en/terms/`）里的
    `canonical`、`hreflang`、`og:url`、`og:image` 与结构化数据 URL
 
-替换后重新运行 `node tools/build-blog.mjs && node tools/render-site.mjs`，
-生成的文章页、RSS 与 sitemap 会自动使用新域名。
-
 ```bash
-grep -rl 'tidy.example.com' . --exclude-dir=tools --exclude-dir=.blog-build
+cd site && node tools/build-blog.mjs && node tools/render-site.mjs
 ```
+
+（内容管线的命令要在 `site/` 目录下跑，不是 `site/tools/`——schema 是按 `<cwd>/docs/` 找的。）
 
 ## 写一篇文章
 

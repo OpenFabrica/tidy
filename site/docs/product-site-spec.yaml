@@ -6,7 +6,7 @@ version: 2
 project:
   name: Tidy
   repository: https://github.com/rambocode/tidy
-  production_url: null            # UNKNOWN — site uses https://tidy.example.com as a placeholder
+  production_url: null            # UNKNOWN — site uses https://tidy.talkwork.vip as a placeholder
   framework: static-html          # zero-dependency HTML + CSS; Node only for the Blog pipeline
   primary_locale: zh
   locales: [zh, en]

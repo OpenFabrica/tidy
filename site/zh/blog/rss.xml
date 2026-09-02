@@ -2,14 +2,14 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>/zh/blog/</title>
-    <link>https://tidy.example.com/zh/blog/</link>
+    <link>https://tidy.talkwork.vip/zh/blog/</link>
     <description>Blog (zh)</description>
     <language>zh</language>
-    <atom:link href="https://tidy.example.com/zh/blog/rss.xml" rel="self" type="application/rss+xml"/>
+    <atom:link href="https://tidy.talkwork.vip/zh/blog/rss.xml" rel="self" type="application/rss+xml"/>
     <item>
       <title>把 App 拖进废纸篓之后，硬盘上还剩下什么</title>
-      <link>https://tidy.example.com/zh/blog/what-remains-after-uninstall/</link>
-      <guid isPermaLink="true">https://tidy.example.com/zh/blog/what-remains-after-uninstall/</guid>
+      <link>https://tidy.talkwork.vip/zh/blog/what-remains-after-uninstall/</link>
+      <guid isPermaLink="true">https://tidy.talkwork.vip/zh/blog/what-remains-after-uninstall/</guid>
       <pubDate>Fri, 14 Aug 2026 00:00:00 GMT</pubDate>
       <category>apps</category>
       <dc:creator>Tidy</dc:creator>
@@ -17,8 +17,8 @@
     </item>
     <item>
       <title>~/Library/Caches 能不能整个删掉</title>
-      <link>https://tidy.example.com/zh/blog/can-you-delete-library-caches/</link>
-      <guid isPermaLink="true">https://tidy.example.com/zh/blog/can-you-delete-library-caches/</guid>
+      <link>https://tidy.talkwork.vip/zh/blog/can-you-delete-library-caches/</link>
+      <guid isPermaLink="true">https://tidy.talkwork.vip/zh/blog/can-you-delete-library-caches/</guid>
       <pubDate>Mon, 10 Aug 2026 00:00:00 GMT</pubDate>
       <category>space</category>
       <dc:creator>Tidy</dc:creator>

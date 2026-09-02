@@ -1,7 +1,7 @@
 {
   "contentDir": "content/blog",
   "outDir": ".blog-build",
-  "siteUrl": "https://tidy.example.com",
+  "siteUrl": "https://tidy.talkwork.vip",
   "primaryLocale": "zh",
   "locales": [
     "zh",

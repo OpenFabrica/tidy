@@ -1,101 +1,101 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://tidy.example.com/zh/</loc>
-    <lastmod>2026-09-01</lastmod>
+    <loc>https://tidy.talkwork.vip/zh/</loc>
+    <lastmod>2026-09-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.example.com/zh/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.example.com/en/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.example.com/zh/"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.talkwork.vip/zh/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.talkwork.vip/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.talkwork.vip/zh/"/>
   </url>
   <url>
-    <loc>https://tidy.example.com/en/</loc>
-    <lastmod>2026-09-01</lastmod>
+    <loc>https://tidy.talkwork.vip/en/</loc>
+    <lastmod>2026-09-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.example.com/zh/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.example.com/en/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.example.com/zh/"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.talkwork.vip/zh/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.talkwork.vip/en/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.talkwork.vip/zh/"/>
   </url>
   <url>
-    <loc>https://tidy.example.com/zh/privacy/</loc>
-    <lastmod>2026-09-01</lastmod>
+    <loc>https://tidy.talkwork.vip/zh/privacy/</loc>
+    <lastmod>2026-09-02</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.example.com/zh/privacy/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.example.com/en/privacy/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.example.com/zh/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.talkwork.vip/zh/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.talkwork.vip/en/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.talkwork.vip/zh/privacy/"/>
   </url>
   <url>
-    <loc>https://tidy.example.com/en/privacy/</loc>
-    <lastmod>2026-09-01</lastmod>
+    <loc>https://tidy.talkwork.vip/en/privacy/</loc>
+    <lastmod>2026-09-02</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.example.com/zh/privacy/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.example.com/en/privacy/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.example.com/zh/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.talkwork.vip/zh/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.talkwork.vip/en/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.talkwork.vip/zh/privacy/"/>
   </url>
   <url>
-    <loc>https://tidy.example.com/zh/terms/</loc>
-    <lastmod>2026-09-01</lastmod>
+    <loc>https://tidy.talkwork.vip/zh/terms/</loc>
+    <lastmod>2026-09-02</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.example.com/zh/terms/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.example.com/en/terms/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.example.com/zh/terms/"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.talkwork.vip/zh/terms/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.talkwork.vip/en/terms/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.talkwork.vip/zh/terms/"/>
   </url>
   <url>
-    <loc>https://tidy.example.com/en/terms/</loc>
-    <lastmod>2026-09-01</lastmod>
+    <loc>https://tidy.talkwork.vip/en/terms/</loc>
+    <lastmod>2026-09-02</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.example.com/zh/terms/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.example.com/en/terms/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.example.com/zh/terms/"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.talkwork.vip/zh/terms/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.talkwork.vip/en/terms/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.talkwork.vip/zh/terms/"/>
   </url>
   <url>
-    <loc>https://tidy.example.com/zh/blog/</loc>
-    <lastmod>2026-09-01</lastmod>
+    <loc>https://tidy.talkwork.vip/zh/blog/</loc>
+    <lastmod>2026-09-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.example.com/zh/blog/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.example.com/en/blog/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.example.com/zh/blog/"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.talkwork.vip/zh/blog/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.talkwork.vip/en/blog/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.talkwork.vip/zh/blog/"/>
   </url>
   <url>
-    <loc>https://tidy.example.com/en/blog/</loc>
-    <lastmod>2026-09-01</lastmod>
+    <loc>https://tidy.talkwork.vip/en/blog/</loc>
+    <lastmod>2026-09-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.example.com/zh/blog/"/>
-    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.example.com/en/blog/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.example.com/zh/blog/"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.talkwork.vip/zh/blog/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.talkwork.vip/en/blog/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.talkwork.vip/zh/blog/"/>
   </url>
   <url>
-    <loc>https://tidy.example.com/zh/blog/can-you-delete-library-caches/</loc>
+    <loc>https://tidy.talkwork.vip/zh/blog/can-you-delete-library-caches/</loc>
     <lastmod>2026-08-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.example.com/en/blog/can-you-delete-library-caches/"/>
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.example.com/zh/blog/can-you-delete-library-caches/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.example.com/zh/blog/can-you-delete-library-caches/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.talkwork.vip/en/blog/can-you-delete-library-caches/"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.talkwork.vip/zh/blog/can-you-delete-library-caches/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.talkwork.vip/zh/blog/can-you-delete-library-caches/"/>
   </url>
   <url>
-    <loc>https://tidy.example.com/zh/blog/what-remains-after-uninstall/</loc>
+    <loc>https://tidy.talkwork.vip/zh/blog/what-remains-after-uninstall/</loc>
     <lastmod>2026-08-14</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.example.com/zh/blog/what-remains-after-uninstall/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.example.com/zh/blog/what-remains-after-uninstall/"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.talkwork.vip/zh/blog/what-remains-after-uninstall/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.talkwork.vip/zh/blog/what-remains-after-uninstall/"/>
   </url>
   <url>
-    <loc>https://tidy.example.com/en/blog/can-you-delete-library-caches/</loc>
+    <loc>https://tidy.talkwork.vip/en/blog/can-you-delete-library-caches/</loc>
     <lastmod>2026-08-10</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.example.com/en/blog/can-you-delete-library-caches/"/>
-    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.example.com/zh/blog/can-you-delete-library-caches/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.example.com/zh/blog/can-you-delete-library-caches/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tidy.talkwork.vip/en/blog/can-you-delete-library-caches/"/>
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://tidy.talkwork.vip/zh/blog/can-you-delete-library-caches/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tidy.talkwork.vip/zh/blog/can-you-delete-library-caches/"/>
   </url>
 </urlset>

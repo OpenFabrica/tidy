@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tidy.example.com/sitemap.xml
+Sitemap: https://tidy.talkwork.vip/sitemap.xml

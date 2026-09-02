@@ -2,14 +2,14 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>/en/blog/</title>
-    <link>https://tidy.example.com/en/blog/</link>
+    <link>https://tidy.talkwork.vip/en/blog/</link>
     <description>Blog (en)</description>
     <language>en</language>
-    <atom:link href="https://tidy.example.com/en/blog/rss.xml" rel="self" type="application/rss+xml"/>
+    <atom:link href="https://tidy.talkwork.vip/en/blog/rss.xml" rel="self" type="application/rss+xml"/>
     <item>
       <title>Can you just delete ~/Library/Caches?</title>
-      <link>https://tidy.example.com/en/blog/can-you-delete-library-caches/</link>
-      <guid isPermaLink="true">https://tidy.example.com/en/blog/can-you-delete-library-caches/</guid>
+      <link>https://tidy.talkwork.vip/en/blog/can-you-delete-library-caches/</link>
+      <guid isPermaLink="true">https://tidy.talkwork.vip/en/blog/can-you-delete-library-caches/</guid>
       <pubDate>Mon, 10 Aug 2026 00:00:00 GMT</pubDate>
       <category>space</category>
       <dc:creator>Tidy</dc:creator>
