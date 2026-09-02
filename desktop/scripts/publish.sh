@@ -19,7 +19,8 @@ CONF="src-tauri/tauri.conf.json"
 VERSION="$(python3 -c "import json;print(json.load(open('$CONF'))['version'])")"
 TAG="v$VERSION"
 
-BUNDLE="target/release/bundle"
+TARGET="${TIDY_BUILD_TARGET:-universal-apple-darwin}"
+BUNDLE="target/$TARGET/release/bundle"
 DMG="$(ls "$BUNDLE"/dmg/*.dmg 2>/dev/null | head -1 || true)"
 TARBALL="$(ls "$BUNDLE"/macos/*.app.tar.gz 2>/dev/null | head -1 || true)"
 SIGFILE="$(ls "$BUNDLE"/macos/*.app.tar.gz.sig 2>/dev/null | head -1 || true)"
@@ -43,7 +44,7 @@ ASSET_BASE="https://github.com/$REPO/releases/download/$TAG"
 SIGNATURE="$(cat "$SIGFILE")"
 
 # 构建产物的架构：universal 包同时服务两种 Mac，单架构包只服务本机架构。
-if [ -d "target/universal-apple-darwin" ] && [[ "$TARBALL" == *universal* ]]; then
+if [ "$TARGET" = "universal-apple-darwin" ]; then
   TARGETS=(darwin-universal darwin-aarch64 darwin-x86_64)
 else
   case "$(uname -m)" in

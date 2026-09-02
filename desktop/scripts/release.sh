@@ -53,13 +53,45 @@ else
   echo "▶ 更新签名私钥：$TAURI_SIGNING_PRIVATE_KEY_PATH"
 fi
 
+# 公证凭证的前置检查。不查的话，空的 APPLE_PASSWORD 会一路传到 tauri 内部，
+# 在编译完两个架构、签完名之后才抛一个 "HTTP 401 Invalid credentials"——
+# 白等十分钟，而且错误信息根本看不出是哪个变量没填。
+if [ -z "${APPLE_PASSWORD:-}" ] && ! xcrun notarytool history --keychain-profile "${NOTARY_PROFILE:-tidy-notary}" >/dev/null 2>&1; then
+  cat >&2 <<'MSG'
+✗ 没有可用的公证凭证，构建终止（没必要先编译十分钟再失败）。
+
+  二选一：
+  a) 在 https://account.apple.com → 登录与安全 → App 专用密码 生成一个，
+     然后填进 desktop/.env：
+       APPLE_PASSWORD=xxxx-xxxx-xxxx-xxxx
+  b) 存成钥匙串配置（之后就不用管了）：
+       xcrun notarytool store-credentials tidy-notary          --apple-id <apple id> --team-id HQ537XMLJY --password <app 专用密码>
+MSG
+  exit 2
+fi
+
+# rustup 的工具链优先。Homebrew 装的 rust 会排在 PATH 前面，而它只带本机架构，
+# 交叉编译会以 "can't find crate for core" 失败——rust-toolchain.toml 里那句
+# "Homebrew-installed cargo ignores this file" 说的就是这件事。
+if [ -x "$HOME/.cargo/bin/cargo" ]; then
+  export PATH="$HOME/.cargo/bin:$PATH"
+fi
+echo "▶ cargo: $(command -v cargo) ($(cargo --version))"
+
+# 默认出 universal 包。tauri.conf.json 声明支持 macOS 11，那包含 Intel 机器；
+# 只发本机架构的话 Intel 用户连装都装不上，而不是"暂时收不到更新"而已。
+# 需要单架构快速验证时：TIDY_BUILD_TARGET=aarch64-apple-darwin make release
+TARGET="${TIDY_BUILD_TARGET:-universal-apple-darwin}"
+
 echo "▶ building + signing with: $IDENTITY"
+echo "▶ target: $TARGET"
 export APPLE_SIGNING_IDENTITY="$IDENTITY"
 npm ci --prefix ui
-ui/node_modules/.bin/tauri build
+ui/node_modules/.bin/tauri build --target "$TARGET"
 
-APP="$(ls -d target/release/bundle/macos/*.app | head -1)"
-DMG="$(ls target/release/bundle/dmg/*.dmg | head -1)"
+BUNDLE="target/$TARGET/release/bundle"
+APP="$(ls -d "$BUNDLE"/macos/*.app | head -1)"
+DMG="$(ls "$BUNDLE"/dmg/*.dmg | head -1)"
 echo "▶ app: $APP"
 echo "▶ dmg: $DMG"
 
