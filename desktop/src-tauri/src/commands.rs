@@ -161,6 +161,8 @@ pub async fn plan_delete_paths(
 pub struct CleanPlanPayload {
     pub summary: PlanSummary,
     pub blocked: mole_ops::clean::BlockedCaches,
+    /// Per-backup device detail for the iOS backups section badges.
+    pub backups: Vec<mole_ops::clean::BackupInfo>,
 }
 
 /// Full clean plan; sections stream through the progress channel.
@@ -202,7 +204,209 @@ pub async fn plan_clean(
     Ok(CleanPlanPayload {
         summary: summarize(id, &out.plan),
         blocked: out.blocked,
+        backups: out.backups,
     })
+}
+
+/// Trash contents plan. Stored WITHOUT a Trash route: emptying the Trash is
+/// permanent by definition, and execute_plan only honors trash_override for
+/// the clean feature, so nothing can turn this into a no-op move.
+#[tauri::command]
+pub async fn plan_trash(
+    state: State<'_, AppState>,
+    task_id: String,
+) -> Result<PlanSummary, IpcError> {
+    let _busy = crate::tray_anim::busy();
+    let cancel = state.cancel_flag(&task_id);
+    let cancel_probe = cancel.clone();
+    let home = crate::home();
+    let plan =
+        tauri::async_runtime::spawn_blocking(move || mole_ops::trash::build_plan(&home, &cancel))
+            .await
+            .map_err(|e| IpcError::new("io", e.to_string()))?;
+    state.clear_task(&task_id);
+    // Cancelled scans must not become executable plans.
+    if cancel_probe.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(IpcError::new("cancelled", "scan cancelled"));
+    }
+    let id = state.store_plan(
+        plan.clone(),
+        PlanConfig {
+            feature: "trash",
+            command: "trash",
+            trash: false,
+            uninstall_mode: false,
+        },
+    );
+    Ok(summarize(id, &plan))
+}
+
+/// Orphan plan payload: preview plus per-path bundle id / idle days.
+#[derive(Serialize)]
+pub struct OrphanPlanPayload {
+    pub summary: PlanSummary,
+    pub orphans: Vec<mole_ops::orphans::OrphanInfo>,
+}
+
+/// Leftovers of apps that are no longer installed. Trash-routed: the
+/// evidence is strong but indirect, so every removal stays recoverable.
+#[tauri::command]
+pub async fn plan_orphans(
+    state: State<'_, AppState>,
+    task_id: String,
+) -> Result<OrphanPlanPayload, IpcError> {
+    let _busy = crate::tray_anim::busy();
+    let cancel = state.cancel_flag(&task_id);
+    let cancel_probe = cancel.clone();
+    let home = crate::home();
+    let out = tauri::async_runtime::spawn_blocking(move || {
+        let probes = SystemProbes::new();
+        mole_ops::orphans::build_plan(&home, &probes, &cancel)
+    })
+    .await
+    .map_err(|e| IpcError::new("io", e.to_string()))?;
+    state.clear_task(&task_id);
+    if cancel_probe.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(IpcError::new("cancelled", "scan cancelled"));
+    }
+    let id = state.store_plan(
+        out.plan.clone(),
+        PlanConfig {
+            feature: "orphans",
+            command: "orphans",
+            trash: true,
+            uninstall_mode: false,
+        },
+    );
+    Ok(OrphanPlanPayload {
+        summary: summarize(id, &out.plan),
+        orphans: out.orphans,
+    })
+}
+
+/// Tool plan payload: preview plus the raw tool rows (kind / admin / detail).
+#[derive(Serialize)]
+pub struct ToolPlanPayload {
+    pub summary: PlanSummary,
+    pub items: Vec<mole_ops::tools::ToolItem>,
+}
+
+/// Command-backed reclaimables (Time Machine local snapshots, unavailable
+/// simulators, Homebrew cleanup) as one "tools" section. Same boundary rule
+/// as Docker: execute_tools accepts only ids from this scan.
+#[tauri::command]
+pub async fn plan_tools(
+    state: State<'_, AppState>,
+    task_id: String,
+) -> Result<ToolPlanPayload, IpcError> {
+    let _busy = crate::tray_anim::busy();
+    let cancel = state.cancel_flag(&task_id);
+    let cancel_probe = cancel.clone();
+    let home = crate::home();
+    let items = tauri::async_runtime::spawn_blocking(move || {
+        let probes = SystemProbes::new();
+        mole_ops::tools::scan(&home, &probes, &cancel)
+    })
+    .await
+    .map_err(|e| IpcError::new("io", e.to_string()))?;
+    state.clear_task(&task_id);
+    if cancel_probe.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(IpcError::new("cancelled", "scan cancelled"));
+    }
+
+    let mut targets = std::collections::HashMap::new();
+    let mut rows = Vec::new();
+    for item in &items {
+        targets.insert(item.id.clone(), item.target.clone());
+        rows.push(PlanItem {
+            id: item.id.clone(),
+            path: item.label.clone(),
+            size_kb: item.size_kb,
+            item_count: 1,
+            // Snapshots elevate through the admin runner; the UI gates them
+            // on helper availability exactly like system-scope files.
+            scope: if item.requires_admin {
+                "system"
+            } else {
+                "user"
+            },
+        });
+    }
+    let total_kb = rows.iter().map(|i| i.size_kb.unwrap_or(0)).sum();
+    let count = rows.len();
+    let plan_id = state.store_tools(targets);
+    Ok(ToolPlanPayload {
+        summary: PlanSummary {
+            plan_id,
+            sections: vec![PlanSection {
+                title: "tools".into(),
+                items: rows,
+                total_kb,
+            }],
+            total_kb,
+            count,
+        },
+        items,
+    })
+}
+
+/// Run the selected tool items through their own CLIs. Each id must come
+/// from the stored scan; snapshots go through the privileged runner.
+#[tauri::command]
+pub async fn execute_tools(
+    state: State<'_, AppState>,
+    plan_id: String,
+    selection: Vec<String>,
+    on_progress: Channel<ExecItem>,
+) -> Result<ExecReport, IpcError> {
+    let _busy = crate::tray_anim::busy();
+    let mut targets = Vec::new();
+    for id in &selection {
+        let target = state.tool_target(&plan_id, id).map_err(|code| {
+            IpcError::new(code_static(code), "tool scan unavailable — re-run the scan")
+        })?;
+        targets.push((id.clone(), target));
+    }
+    let home = crate::home();
+    let report = tauri::async_runtime::spawn_blocking(move || {
+        let privileged = AdminRunner;
+        let mut report = ExecReport {
+            items: Vec::new(),
+            total_freed_kb: 0,
+            skipped: 0,
+            failed: 0,
+        };
+        for (id, target) in targets {
+            let result = mole_ops::tools::execute(&target, &home, &privileged);
+            let item = match result {
+                Ok(()) => ExecItem {
+                    id: id.clone(),
+                    path: id,
+                    outcome: "removed".into(),
+                    size_kb: None,
+                    error: None,
+                },
+                Err(e) => {
+                    report.failed += 1;
+                    ExecItem {
+                        id: id.clone(),
+                        path: id,
+                        outcome: "failed".into(),
+                        size_kb: None,
+                        error: Some(e),
+                    }
+                }
+            };
+            let _ = on_progress.send(item.clone());
+            report.items.push(item);
+        }
+        report
+    })
+    .await
+    .map_err(|e| IpcError::new("io", e.to_string()))?;
+    // Any real run invalidates the scan (disk no longer matches).
+    state.clear_tools();
+    Ok(report)
 }
 
 /// Reveal a path in Finder (read-only convenience).

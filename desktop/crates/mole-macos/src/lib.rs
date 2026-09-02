@@ -45,6 +45,20 @@ fn applescript_shell_quoted(path: &Path) -> String {
     shell.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
+/// Strict `YYYY-MM-DD-HHMMSS` check for a Time Machine snapshot stamp: digits
+/// and dashes at fixed positions only, so the stamp can be interpolated into
+/// the elevated command without any quoting concern.
+fn is_valid_snapshot_stamp(stamp: &str) -> bool {
+    let bytes = stamp.as_bytes();
+    if bytes.len() != 17 {
+        return false;
+    }
+    bytes.iter().enumerate().all(|(i, b)| match i {
+        4 | 7 | 10 => *b == b'-',
+        _ => b.is_ascii_digit(),
+    })
+}
+
 /// Run one shell command as root via osascript. Refuses in any test mode so a
 /// test can never trigger a real authorization prompt.
 fn run_as_admin(shell_cmd: &str) -> io::Result<()> {
@@ -105,6 +119,16 @@ impl PrivilegedRunner for AdminRunner {
         );
         run_as_admin(&cmd)
     }
+
+    fn delete_local_snapshot(&self, stamp: &str) -> io::Result<()> {
+        // Validate BEFORE the test-mode guard inside run_as_admin: a malformed
+        // stamp must be refused on its own merits, never because elevation
+        // happened to be unavailable.
+        if !is_valid_snapshot_stamp(stamp) {
+            return Err(io::Error::other("invalid snapshot stamp"));
+        }
+        run_as_admin(&format!("/usr/bin/tmutil deletelocalsnapshots {stamp}"))
+    }
 }
 
 #[cfg(test)]
@@ -140,6 +164,23 @@ mod tests {
         }
     }
 
+    /// A malformed stamp is refused by shape, with the test guard still on:
+    /// validation runs before elevation is even considered.
+    #[test]
+    fn malformed_snapshot_stamps_never_reach_elevation() {
+        std::env::set_var("MOLE_TEST_NO_AUTH", "1");
+        for bad in [
+            "2024-05-01;123456",
+            "2024-05-01-12345a",
+            "2024-05-01-12345",
+            "2024-05-01-1234567",
+            "",
+        ] {
+            let err = AdminRunner.delete_local_snapshot(bad).unwrap_err();
+            assert_eq!(err.to_string(), "invalid snapshot stamp", "stamp {bad:?}");
+        }
+    }
+
     #[test]
     fn env_guarded_behaviors() {
         // Env vars are process-global; keep every env mutation in one
@@ -149,6 +190,7 @@ mod tests {
         assert!(!r.available());
         assert!(r.remove(Path::new("/private/var/x")).is_err());
         assert!(r.stage_to_trash(Path::new("/private/var/x")).is_err());
+        assert!(r.delete_local_snapshot("2024-05-01-123456").is_err());
 
         // With the guard off, a relative HOME is rejected before elevation.
         std::env::remove_var("MOLE_TEST_NO_AUTH");

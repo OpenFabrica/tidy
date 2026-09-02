@@ -30,7 +30,7 @@ pub struct AppInfo {
 }
 
 /// Read Info.plist fields from an .app bundle; None when unreadable.
-fn read_app_info(app_path: &Path) -> Option<(String, String, String)> {
+pub(crate) fn read_app_info(app_path: &Path) -> Option<(String, String, String)> {
     let info = app_path.join("Contents/Info.plist");
     let value = plist::Value::from_file(&info).ok()?;
     let dict = value.as_dictionary()?;
@@ -143,7 +143,7 @@ pub fn inventory(home: &str, probes: &dyn LiveProbes, cancel: &CancelFlag) -> Ve
 
 /// Lightweight (path, bundle_id) listing for the sibling guard — reads
 /// Info.plist only, never measures sizes.
-fn bundle_listing(home: &str) -> Vec<(String, String)> {
+pub(crate) fn bundle_listing(home: &str) -> Vec<(String, String)> {
     let mut out = Vec::new();
     let roots = [
         PathBuf::from("/Applications"),

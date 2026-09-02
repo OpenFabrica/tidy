@@ -26,6 +26,8 @@ import type {
   UpdateResult,
   WhitelistPayload,
   DockerPlanPayload,
+  OrphanPlanPayload,
+  ToolPlanPayload,
   AppSettings,
   UpdateInfo,
   DownloadProgress,
@@ -114,6 +116,23 @@ export const executeDocker = (
 
 export const planInstaller = (taskId: string) =>
   invoke<PlanSummary>("plan_installer", { taskId });
+
+/** Trash contents; the backend stores this plan permanent-only. */
+export const planTrash = (taskId: string) => invoke<PlanSummary>("plan_trash", { taskId });
+
+/** Leftovers of apps no longer installed (Trash-routed). */
+export const planOrphans = (taskId: string) =>
+  invoke<OrphanPlanPayload>("plan_orphans", { taskId });
+
+/** Snapshots / simulators / Homebrew: removed by their own CLIs. */
+export const planTools = (taskId: string) => invoke<ToolPlanPayload>("plan_tools", { taskId });
+
+export const executeTools = (
+  planId: string,
+  selection: string[],
+  onProgress: (item: ExecItem) => void,
+) =>
+  invoke<ExecReport>("execute_tools", { planId, selection, onProgress: channel(onProgress) });
 
 export const executePlan = (
   planId: string,

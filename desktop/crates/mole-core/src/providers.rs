@@ -31,6 +31,10 @@ pub trait PrivilegedRunner: Send + Sync {
     /// Stage a path into root-owned staging under /Library, then hand it to
     /// the invoking user's Trash (the privileged-Trash contract).
     fn stage_to_trash(&self, path: &Path) -> io::Result<()>;
+    /// Delete one Time Machine local snapshot by stamp (`YYYY-MM-DD-HHMMSS`)
+    /// as root. Implementations MUST re-validate the stamp shape before
+    /// touching a shell.
+    fn delete_local_snapshot(&self, stamp: &str) -> io::Result<()>;
 }
 
 /// Test/M1 Trash provider: moves into a designated directory (the shell's
@@ -69,6 +73,9 @@ impl PrivilegedRunner for DeniedPrivilegedRunner {
         Err(io::Error::other("privileged helper not available"))
     }
     fn stage_to_trash(&self, _path: &Path) -> io::Result<()> {
+        Err(io::Error::other("privileged helper not available"))
+    }
+    fn delete_local_snapshot(&self, _stamp: &str) -> io::Result<()> {
         Err(io::Error::other("privileged helper not available"))
     }
 }

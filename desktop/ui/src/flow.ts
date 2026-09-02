@@ -45,6 +45,9 @@ export interface FlowOptions {
   /** Per-plan executor override (e.g. Docker items go through the docker
    * CLI). Return undefined to use the default file-deletion funnel. */
   execute?: (job: ExecJob, onItem: (item: ExecItem) => void) => Promise<ExecReport> | undefined;
+  /** Hook run after the reclaimed-space page renders, with what was freed
+   * and how much of it only moved to the Trash (not yet freed on disk). */
+  afterDone?: (body: HTMLElement, result: { freedKb: number; trashedKb: number }) => void;
 }
 
 /** Match the software list's outlined disclosure icon. The SVG rotates as a
@@ -429,7 +432,7 @@ export interface ExecJob {
 export function runExecution(
   body: HTMLElement,
   jobs: ExecJob[],
-  opts: Pick<FlowOptions, "trashOverride" | "execute" | "ledger">,
+  opts: Pick<FlowOptions, "trashOverride" | "execute" | "ledger" | "afterDone">,
 ): void {
   body.innerHTML = `
     <div style="padding-top:30px">
@@ -443,9 +446,13 @@ export function runExecution(
   const line = body.querySelector<HTMLElement>("#exec-line")!;
   const total = jobs.reduce((n, j) => n + j.selection.length, 0);
   let done = 0;
+  // Bytes that only moved to the Trash: they count as "freed" in the report
+  // but stay on disk until the Trash is emptied, so the done page says so.
+  let trashedKb = 0;
 
   const onItem = (item: ExecItem) => {
     done += 1;
+    if (item.outcome === "trashed") trashedKb += item.size_kb ?? 0;
     line.textContent = `${done}/${total}`;
     const row = document.createElement("tr");
     row.innerHTML = `
@@ -501,6 +508,7 @@ export function runExecution(
       body.querySelector("#again")!.addEventListener("click", () => {
         window.dispatchEvent(new HashChangeEvent("hashchange"));
       });
+      opts.afterDone?.(body, { freedKb, trashedKb });
     })
     .catch((e) => {
       if (surfaceOf(opts) !== "apps") {

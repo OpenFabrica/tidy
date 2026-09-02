@@ -345,6 +345,13 @@ struct StoredDocker {
     created: Instant,
 }
 
+/// Last tool scan (snapshots / simulators / brew): item id → action.
+struct StoredTools {
+    plan_id: String,
+    targets: HashMap<String, mole_ops::tools::ToolTarget>,
+    created: Instant,
+}
+
 /// Last update catalog used as the scan-to-action authorization boundary.
 struct StoredUpdates {
     items: HashMap<String, AppUpdate>,
@@ -368,6 +375,8 @@ pub struct AppState {
     pub analyze_cache: Arc<mole_ops::analyze::SizeCache>,
     /// Latest Docker scan; execute_docker accepts ids from this map only.
     docker: Mutex<Option<StoredDocker>>,
+    /// Latest tool scan; execute_tools accepts ids from this map only.
+    tools: Mutex<Option<StoredTools>>,
     /// Single-flight update mutation guard.
     updates_busy: AtomicBool,
 }
@@ -428,6 +437,40 @@ impl AppState {
             Some(d) if d.created.elapsed() > PLAN_TTL => Err("plan_expired"),
             Some(d) => d.targets.get(id).cloned().ok_or("selection_mismatch"),
         }
+    }
+
+    /// Store the tool scan and hand back its plan id.
+    pub fn store_tools(&self, targets: HashMap<String, mole_ops::tools::ToolTarget>) -> String {
+        static COUNTER: AtomicU64 = AtomicU64::new(1);
+        let plan_id = format!("plan-tools-{}", COUNTER.fetch_add(1, Ordering::Relaxed));
+        *self.tools.lock().unwrap() = Some(StoredTools {
+            plan_id: plan_id.clone(),
+            targets,
+            created: Instant::now(),
+        });
+        plan_id
+    }
+
+    /// Resolve a tool item id against the stored scan (same freshness and
+    /// plan-id rules as Docker), or explain why not.
+    pub fn tool_target(
+        &self,
+        plan_id: &str,
+        id: &str,
+    ) -> Result<mole_ops::tools::ToolTarget, &'static str> {
+        let tools = self.tools.lock().unwrap();
+        match tools.as_ref() {
+            None => Err("plan_not_found"),
+            Some(t) if t.plan_id != plan_id => Err("plan_not_found"),
+            Some(t) if t.created.elapsed() > PLAN_TTL => Err("plan_expired"),
+            Some(t) => t.targets.get(id).cloned().ok_or("selection_mismatch"),
+        }
+    }
+
+    /// Drop the tool scan after execution: snapshots and simulators no
+    /// longer match what the preview showed.
+    pub fn clear_tools(&self) {
+        *self.tools.lock().unwrap() = None;
     }
 
     /// Drop a plan after successful execution (it no longer matches disk).

@@ -297,9 +297,51 @@ export interface BlockedCaches {
   total_kb: number;
 }
 
+/** One iOS backup folder (mirror of mole_ops::clean::BackupInfo). */
+export interface BackupInfo {
+  path: string;
+  device: string;
+  product: string;
+  last_backup_days: number | null;
+}
+
 export interface CleanPlanPayload {
   summary: PlanSummary;
   blocked: BlockedCaches;
+  backups: BackupInfo[];
+}
+
+/** One leftover of an app that is no longer installed. */
+export interface OrphanInfo {
+  path: string;
+  bundle_id: string;
+  idle_days: number | null;
+}
+
+export interface OrphanPlanPayload {
+  summary: PlanSummary;
+  orphans: OrphanInfo[];
+}
+
+/** What a tool item removes (mirror of mole_ops::tools::ToolTarget). */
+export type ToolTarget =
+  | { kind: "snapshot"; stamp: string }
+  | { kind: "simulator"; udid: string }
+  | { kind: "brew_cleanup" };
+
+/** One command-backed reclaimable (mirror of mole_ops::tools::ToolItem). */
+export interface ToolItem {
+  id: string;
+  label: string;
+  detail: string | null;
+  size_kb: number | null;
+  requires_admin: boolean;
+  target: ToolTarget;
+}
+
+export interface ToolPlanPayload {
+  summary: PlanSummary;
+  items: ToolItem[];
 }
 
 /** 后端持有的设置（前端 localStorage 存不下的那几项）。 */
