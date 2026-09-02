@@ -43,6 +43,8 @@ const FLUSH_INTERVAL: Duration = Duration::from_secs(60);
 const BATCH_TRIGGER: usize = 20;
 /// 单次 HTTP 请求超时。设短是为了让离线用户的退出流程不被拖住。
 const HTTP_TIMEOUT: Duration = Duration::from_secs(10);
+/// 退出时最多等这么久让队列发完。超时也不丢数据——退出路径会先落盘再发。
+const EXIT_FLUSH_BUDGET: Duration = Duration::from_secs(2);
 
 /// 启动时确定下来的遥测状态，交给 UI 决定要不要弹首次告知横幅。
 #[derive(Debug, Clone, Copy)]
@@ -60,7 +62,8 @@ pub struct Boot {
 /// 后台线程的指令。
 enum Msg {
     Track(Box<Event>),
-    Flush,
+    /// 立刻发一批。带回执 = 调用方在等（退出路径），后台线程会先落盘再发。
+    Flush(Option<mpsc::SyncSender<()>>),
 }
 
 struct Client {
@@ -140,10 +143,21 @@ pub fn track(event: Event) {
     }
 }
 
-/// 立刻把队列发出去（应用退出前调用）。
+/// 立刻把队列发出去，并**等到发完再返回**（应用退出前调用）。
+///
+/// 必须等：早先这里是发完消息就返回，主线程紧接着退出，进程把正在发 HTTP
+/// 的后台线程一并带走，于是退出时的这一次冲刷从来没有真正生效过——只有 60
+/// 秒定时那次有用。实测一次启动后立刻退出的会话，事件全丢。
+///
+/// 等待有 2 秒预算，超时也不丢数据：后台线程在这条路径上会**先落盘再发**，
+/// 进程就算下一毫秒消失，事件也在磁盘上等着下次启动补发。
 pub fn flush() {
-    if let Some(Some(client)) = CLIENT.get() {
-        let _ = client.tx.send(Msg::Flush);
+    let Some(Some(client)) = CLIENT.get() else {
+        return;
+    };
+    let (ack_tx, ack_rx) = mpsc::sync_channel(1);
+    if client.tx.send(Msg::Flush(Some(ack_tx))).is_ok() {
+        let _ = ack_rx.recv_timeout(EXIT_FLUSH_BUDGET);
     }
 }
 
@@ -286,7 +300,18 @@ fn worker(rx: mpsc::Receiver<Msg>, ctx: Context) {
                     send_or_spill(&http, &ctx, &mut pending);
                 }
             }
-            Ok(Msg::Flush) | Err(RecvTimeoutError::Timeout) => {
+            Ok(Msg::Flush(ack)) => {
+                // 有人在等回执 = 退出路径。先落盘：进程可能在下一毫秒消失，
+                // 磁盘是唯一不会跟着进程一起没的地方。发送成功后会删掉。
+                if ack.is_some() {
+                    queue::save_spill(&ctx.spill, &pending);
+                }
+                send_or_spill(&http, &ctx, &mut pending);
+                if let Some(ack) = ack {
+                    let _ = ack.try_send(());
+                }
+            }
+            Err(RecvTimeoutError::Timeout) => {
                 send_or_spill(&http, &ctx, &mut pending);
             }
             // 发送端全部析构 = 应用在退出。最后发一次再收工。
