@@ -81,7 +81,7 @@
 
   <p><strong>Deliberately not collected</strong>: how much space was reclaimed, how many items were found, how many apps were uninstalled, any path, any filename, any application name, your machine name, or raw error messages (those routinely contain absolute paths). These are excluded <em>structurally</em> in the code — event property types accept only fixed constants, never runtime strings.</p>
 
-  <p><strong>Where the data goes</strong>: first to our own Cloudflare Worker proxy, which strips client-IP headers before forwarding, then to PostHog for aggregation. PostHog therefore never receives your IP address and cannot geolocate you from it.</p>
+  <p><strong>Where the data goes</strong>: the one and only endpoint is <code>https://t.tandem-clip.com</code> — our own Cloudflare Worker proxy. The hostname does not carry the Tidy name because it shares a Cloudflare account with the author's other projects; if you spot it in a packet capture, that is what it is. The proxy strips client-IP headers before forwarding to PostHog for aggregation, so PostHog never receives your IP address and cannot geolocate you from it.</p>
   <p>Events are queued locally and sent in batches every 60 seconds or on exit. A failed send is written to <code>~/.config/mole/telemetry-queue.json</code> and retried on the next launch; the queue holds at most 500 events.</p>
 
   <h3>What does not happen</h3>

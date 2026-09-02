@@ -6,8 +6,8 @@ compatibility_date = "2026-01-01"
 # PostHog 的接入区域。欧洲项目改成 https://eu.i.posthog.com。
 POSTHOG_HOST = "https://us.i.posthog.com"
 
-# 部署后把自定义域绑上，然后用同一个地址构建桌面端：
-#   TIDY_TELEMETRY_URL=https://<你的域名> make release
-# [[routes]]
-# pattern = "t.example.com"
-# custom_domain = true
+# 自定义域。刻意不用默认的 *.workers.dev：那个域名在国内经常不通，而"国内
+# 可达"正是加这一跳的主要理由之一，用默认域名等于这一跳白加。
+[[routes]]
+pattern = "t.tandem-clip.com"
+custom_domain = true

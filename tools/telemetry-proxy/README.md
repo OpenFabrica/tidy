@@ -14,9 +14,11 @@ cd tools/telemetry-proxy
 npx wrangler deploy
 ```
 
-**已部署地址**：`https://tidy-telemetry.<subdomain>.workers.dev`
+**已部署地址**：`https://t.tandem-clip.com`（Worker 名 `tidy-telemetry`）
 
-⚠️ 正式发版前请绑自定义域。`*.workers.dev` 在国内经常不通，而"国内可达"正是加这一跳的主要理由之一；用默认域名等于这一跳白加。在 Cloudflare 控制台把域名绑到这个 Worker，或取消 `wrangler.toml` 里 `[[routes]]` 的注释。
+默认的 `*.workers.dev` 地址已在 `wrangler.toml` 里关闭，只留自定义域这一个入口。
+
+域名用的是 `tandem-clip.com` 这个区，而不是产品域名 `tidy.talkwork.vip`——因为 Worker 绑自定义域要求该域名托管在 Cloudflare，而 `talkwork.vip` 在阿里云 DNS。这一点已在隐私页点名说明，免得有人抓包看到一个陌生域名。
 
 ## 接到桌面端
 
@@ -33,7 +35,7 @@ make release
 ## 验证
 
 ```bash
-curl -X POST https://tidy-telemetry.<subdomain>.workers.dev/batch/ \
+curl -X POST https://t.tandem-clip.com/batch/ \
   -H 'content-type: application/json' \
   -d '{"api_key":"phc_xxx","batch":[{"event":"app_launched","properties":{"distinct_id":"smoke-test"}}]}'
 # 期望：ok
