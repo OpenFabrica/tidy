@@ -16,7 +16,8 @@ site/
   zh|en/privacy/          隐私说明（手写）
   zh|en/terms/            使用条款（手写）
   zh|en/blog/**           文章页与列表页（由 tools 生成，不要手改）
-  assets/site.css         全站样式，token 与 desktop/ui/src/styles/tokens.css 对齐
+  assets/site.css         全站样式（报纸杂志风），token 与 desktop/ui/src/styles/tokens.css 对齐
+  assets/fonts/           从 desktop/ui/public/fonts 复制的 Noto Serif SC / IBM Plex Mono 子集
   assets/tidy-logo.png    从 desktop/ui/public/ 复制
   assets/media/           首页产品截图（webp 1x/2x + png 兜底）
   content/blog/<locale>/  文章源文件（唯一真相）
@@ -70,7 +71,7 @@ node tools/new-post.mjs --translate stable-slug --locale en
 
 ## 站点配图（首页截图）
 
-首页的三张产品界面是**真实截图**，取自 0.1.0 本地构建，源文件在 `assets/media/`：
+首页的三张产品界面是**真实截图**，取自 0.1.1 本地构建（报纸杂志风界面），源文件在 `assets/media/`：
 
 | 文件前缀 | 界面 | 位置 |
 | --- | --- | --- |
@@ -78,20 +79,21 @@ node tools/new-post.mjs --translate stable-slug --locale en
 | `apps-uninstall` | 软件 → 卸载列表 | 产品证据区，lazy |
 | `apps-updates` | 软件 → 更新列表 | 「看清哪些软件该更新」工作流，lazy |
 
-每个前缀有三个文件：`@2x.webp`（2160w）、`@1x.webp`（1080w）、`@1x.png`（1080w 兜底），
-通过 `<picture>` 交付，`<img>` 上声明 `width="2160" height="1440"` 预留 3:2 版面防止抖动。
+每个前缀有三个文件：`@2x.webp`（2640w）、`@1x.webp`（1320w）、`@1x.png`（1320w 兜底），
+通过 `<picture>` 交付，`<img>` 上声明 `width="2640" height="1440"` 预留 11:6 版面防止抖动。
 
 重拍截图时按同一套规范：
 
-- 窗口 2160×1440（@2x，对应 tauri.conf.json 的 1080×720 默认窗口），深色主题，保留窗口栏；
+- 窗口 2640×1440（@2x，对应 tauri.conf.json 的 1320×720 默认窗口），报纸风纸色主题，保留窗口栏；
+- 用 `screencapture -x -o -l <windowId>` 截取（`-o` 去掉系统阴影，阴影由 `site.css` 的 `.shot img` 统一绘制）；
 - 画面里不得出现真实姓名、邮箱、token 或带用户名的路径；
 - UI 改了就重拍——**过期截图算事实错误，不是美观问题**；
 - 生成三个衍生文件：
 
 ```bash
-convert 原图.png -resize 2160x -quality 86 -define webp:method=6 assets/media/<name>@2x.webp
-convert 原图.png -resize 1080x -quality 86 -define webp:method=6 assets/media/<name>@1x.webp
-convert 原图.png -resize 1080x -strip                            assets/media/<name>@1x.png
+convert 原图.png -resize 2640x -quality 86 -define webp:method=6 assets/media/<name>@2x.webp
+convert 原图.png -resize 1320x -quality 86 -define webp:method=6 assets/media/<name>@1x.webp
+convert 原图.png -resize 1320x -strip                            assets/media/<name>@1x.png
 ```
 
 `alt` 写图里有什么，`figcaption` 写这张图证明了什么以及它取自哪个构建，两者不重复。
