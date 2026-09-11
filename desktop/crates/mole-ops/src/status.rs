@@ -1,9 +1,10 @@
 // Status: read-only system snapshot for the dashboard. Collectors are local
 // and bounded: sysinfo for CPU/mem/disk/process, ioreg for GPU utilization
 // and battery detail, `memory_pressure` for the pressure badge, and one
-// cached `system_profiler` call for the GPU core count. Fan RPM comes from
-// the read-only SMC client in `smc.rs` (unprivileged reads); CPU/GPU
-// temperatures stay unreported rather than guessed.
+// cached `system_profiler` call for the GPU core count. Fan RPM and CPU/GPU
+// die temperatures come from the read-only SMC client in `smc.rs`
+// (unprivileged reads); when the SMC has no matching sensor they stay
+// unreported rather than guessed.
 
 use serde::Serialize;
 use std::process::Command;
@@ -45,7 +46,6 @@ pub struct BatteryStatus {
     pub percent: u8,
     pub charging: bool,
     pub cycle_count: Option<u32>,
-    pub temperature_c: Option<f32>,
     /// AppleRawMaxCapacity / DesignCapacity.
     pub health_percent: Option<u8>,
     /// |voltage × amperage|, current draw or charge rate.
@@ -102,6 +102,8 @@ pub struct StatusSnapshot {
     pub network: NetworkStatus,
     /// Fan telemetry via unprivileged SMC reads; empty on fanless models.
     pub fans: Vec<crate::smc::FanStatus>,
+    /// Hottest CPU/GPU die sensor via SMC; None when unavailable.
+    pub temperatures: crate::smc::Temperatures,
     pub top_processes: Vec<ProcessInfo>,
 }
 
@@ -180,8 +182,6 @@ fn battery_status() -> Option<BatteryStatus> {
 
     let ioreg = cmd_text("ioreg", &["-r", "-c", "AppleSmartBattery"]);
     let cycle_count = ioreg_value(&ioreg, "\"CycleCount\"").map(|v| v as u32);
-    // Temperature is reported in centi-degrees C.
-    let temperature_c = ioreg_value(&ioreg, "\"Temperature\"").map(|v| v as f32 / 100.0);
     let health_percent = match (
         ioreg_value(&ioreg, "\"AppleRawMaxCapacity\""),
         ioreg_value(&ioreg, "\"DesignCapacity\""),
@@ -211,7 +211,6 @@ fn battery_status() -> Option<BatteryStatus> {
         percent,
         charging,
         cycle_count,
-        temperature_c,
         health_percent,
         watts,
     })
@@ -350,6 +349,7 @@ pub fn snapshot() -> StatusSnapshot {
             interface: default_interface(),
         },
         fans: crate::smc::fans(),
+        temperatures: crate::smc::temperatures(),
         top_processes: top,
     }
 }

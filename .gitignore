@@ -5,6 +5,8 @@
 desktop/target/
 desktop/src-tauri/target/
 desktop/src-tauri/gen/
+# Sidecar copy of mole-helper, produced by desktop/scripts/build-helper.sh
+desktop/src-tauri/binaries/
 
 # Node / Vite
 node_modules/

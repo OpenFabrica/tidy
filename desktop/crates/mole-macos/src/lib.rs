@@ -37,7 +37,7 @@ pub struct AdminRunner;
 /// which is then embedded in a shell `do shell script`. Both layers need their
 /// own quoting; single-quoting the shell argument makes shell metacharacters
 /// literal, and we escape `\` and `"` for the AppleScript string.
-fn applescript_shell_quoted(path: &Path) -> String {
+pub fn applescript_shell_quoted(path: &Path) -> String {
     // Single-quote for the shell: only ' needs escaping (close-quote, escaped
     // quote, reopen).
     let shell = format!("'{}'", path.to_string_lossy().replace('\'', "'\\''"));
@@ -60,8 +60,10 @@ fn is_valid_snapshot_stamp(stamp: &str) -> bool {
 }
 
 /// Run one shell command as root via osascript. Refuses in any test mode so a
-/// test can never trigger a real authorization prompt.
-fn run_as_admin(shell_cmd: &str) -> io::Result<()> {
+/// test can never trigger a real authorization prompt. Public for the fan
+/// daemon launcher in mole-ops; every argument must already be shell-quoted
+/// with `applescript_shell_quoted` (or be a numeric literal).
+pub fn run_as_admin(shell_cmd: &str) -> io::Result<()> {
     if std::env::var("MOLE_TEST_MODE").as_deref() == Ok("1")
         || std::env::var("MOLE_TEST_NO_AUTH").as_deref() == Ok("1")
     {

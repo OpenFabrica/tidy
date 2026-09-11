@@ -1,18 +1,35 @@
 // Status view (newspaper skin): a six-column metric strip set in giant serif
 // numerals — CPU with per-core bars, memory with pressure, GPU, disk, network,
-// and battery/fan (read-only SMC; fan *control* would need the privileged
-// helper) — then a double rule, the two top-process ledgers and the health
-// rail, and finally the full sortable process table as the continuation
-// below the fold. The hardware line is printed in the masthead marginalia.
+// and battery/fan — then the fan-control panel (manual RPM through the root
+// fan daemon, see mole-helper), a double rule, the two top-process ledgers
+// and the health rail, and finally the full sortable process table as the
+// continuation below the fold. The hardware line is printed in the masthead marginalia.
 // Refreshes every 2s while mounted only.
 
-import { appIcon, processDetail, revealInFinder, signalProcess, statusSnapshot } from "../ipc";
+import {
+  appIcon,
+  fanControlAuto,
+  fanControlSet,
+  fanControlStart,
+  fanControlStatus,
+  fanControlStop,
+  processDetail,
+  revealInFinder,
+  signalProcess,
+  statusSnapshot,
+} from "../ipc";
 import { esc, humanBytes, humanUptime, splitUnit } from "../format";
 import { t } from "../i18n";
 import { formatTemp } from "../prefs";
 import { setNavMeta } from "../router";
 import type { View } from "../router";
-import type { FanStatus, ProcessDetail, ProcessInfo, StatusSnapshot } from "../types";
+import type {
+  FanControlState,
+  FanStatus,
+  ProcessDetail,
+  ProcessInfo,
+  StatusSnapshot,
+} from "../types";
 
 let timer: number | null = null;
 
@@ -54,6 +71,16 @@ function humanRuntime(seconds: number): string {
   if (d > 0) return `${d}d ${h}h`;
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
+}
+
+/** Headline byte figure: at most one decimal, none from three digits up
+ * ("59.3", "120"). humanBytes' two decimals ("59.33") run past the narrow
+ * strip columns at headline size. */
+function headlineBytes(bytes: number): [string, string] {
+  const [value, unit] = splitUnit(humanBytes(bytes));
+  const n = Number(value);
+  if (!Number.isFinite(n)) return [value, unit];
+  return [n >= 100 ? n.toFixed(0) : n.toFixed(1).replace(/\.0$/, ""), unit];
 }
 
 /** Push into a rolling buffer. */
@@ -208,12 +235,20 @@ function renderSnapshot(container: HTMLElement, s: StatusSnapshot): void {
 
   const memHot = pressure > 50 || memPct > 90;
   const cpuHot = s.cpu_usage_percent > 80;
+  // Die temperatures are the hottest SMC core sensor; null inside VMs or on
+  // Intel Macs, in which case the label simply omits it rather than guess.
+  // The temperature goes right after the name: the label is a single
+  // ellipsized line, so anything at the tail is what gets cut in narrow
+  // columns.
+  const cpuTemp = s.temperatures?.cpu_c ?? null;
+  const gpuTemp = s.temperatures?.gpu_c ?? null;
+  const tempTag = (c: number | null) => (c !== null ? ` ${formatTemp(c)}` : "");
 
   const strip = [
     metric(
       s.cpu_usage_percent.toFixed(0),
       "%",
-      `${t("st.cpu")} · ${s.cpu_count} ${t("st.cores")}`,
+      `${t("st.cpu")}${tempTag(cpuTemp)} · ${s.cpu_count} ${t("st.cores")}`,
       coreBars(s.per_core_percent),
       cpuHot,
     ),
@@ -229,19 +264,19 @@ function renderSnapshot(container: HTMLElement, s: StatusSnapshot): void {
     metric(
       String(s.gpu.utilization_percent ?? 0),
       "%",
-      `${t("st.gpu")} · ${s.gpu.core_count ?? "—"} ${t("st.gpucores")} · ${loadLabel(s)}`,
+      `${t("st.gpu")}${tempTag(gpuTemp)} · ${s.gpu.core_count ?? "—"} ${t("st.gpucores")} · ${loadLabel(s)}`,
       sparkline(gpuHistory, "var(--ink)"),
     ),
     root
       ? metric(
-          ...splitUnit(humanBytes(root.available_bytes)),
+          ...headlineBytes(root.available_bytes),
           `${t("st.disk")} · ${t("st.used")} ${usedPct.toFixed(0)}%`,
           `<div class="meter"><div style="width:${usedPct.toFixed(0)}%"></div></div>`,
         )
       : "",
     metric(
-      splitUnit(humanBytes(s.network.rx_rate_bps))[0],
-      `${splitUnit(humanBytes(s.network.rx_rate_bps))[1]}/s`,
+      headlineBytes(s.network.rx_rate_bps)[0],
+      `${headlineBytes(s.network.rx_rate_bps)[1]}/s`,
       `${t("st.net")}${s.network.interface ? ` · ${esc(s.network.interface)}` : ""} · ↑${humanBytes(s.network.tx_rate_bps)}`,
       netChart(),
     ),
@@ -263,9 +298,11 @@ function renderSnapshot(container: HTMLElement, s: StatusSnapshot): void {
       <span class="amt">${esc(value)}</span>
     </div>`;
 
-  container.innerHTML = `
-    <div class="content-narrow">
-      <div class="metric-strip">${strip}</div>
+  // The strip and everything below the fan panel are re-painted as two
+  // separate regions; the #fan-panel node in between is never touched, so a
+  // slider mid-drag keeps its pointer capture and its event listeners.
+  const topHtml = `<div class="metric-strip">${strip}</div>`;
+  const restHtml = `
       <div class="rule-double"></div>
       <div class="cols" style="padding-top:20px">
         ${procColumn(
@@ -297,8 +334,22 @@ function renderSnapshot(container: HTMLElement, s: StatusSnapshot): void {
       </div>
       <div class="muted mono" style="text-align:center;font-size:11px;padding:14px 0 4px">
         ${esc(s.platform)} · ${esc(s.host)}
-      </div>
+      </div>`;
+
+  const top = container.querySelector<HTMLElement>("#snap-top");
+  const rest = container.querySelector<HTMLElement>("#snap-rest");
+  if (top && rest) {
+    top.innerHTML = topHtml;
+    rest.innerHTML = restHtml;
+  } else {
+    container.innerHTML = `
+    <div class="content-narrow">
+      <div id="snap-top">${topHtml}</div>
+      <div id="fan-panel" class="fan-panel hidden"></div>
+      <div id="snap-rest">${restHtml}</div>
     </div>`;
+    renderFanPanel();
+  }
 
   wireProcTable(container);
 }
@@ -311,13 +362,11 @@ function batteryMetric(s: StatusSnapshot, fans: FanStatus[]): string {
       ? `${t("st.fan")} ${Math.round(Math.max(...fans.map((f) => f.actual_rpm)))} RPM ×${fans.length}`
       : t("st.fan.none");
   if (s.battery) {
-    // The reference leads this column with temperature and demotes charge to
-    // the caption; fall back to charge when the SMC reports no reading.
-    const temp = s.battery.temperature_c !== null ? formatTemp(s.battery.temperature_c) : null;
-    const [value, unit] = temp ? splitUnit(temp) : [String(s.battery.percent), "%"];
+    // Charge percent leads; battery temperature is deliberately not shown
+    // (it barely moves and reads as if it were the chip temperature).
     return `<div class="metric" style="flex:0.8">
-      <div class="figure md">${value}<span class="unit">${unit}</span></div>
-      <span class="metric-label">${t("st.battery")} ${s.battery.percent}%${
+      <div class="figure md">${s.battery.percent}<span class="unit">%</span></div>
+      <span class="metric-label">${t("st.battery")}${
         s.battery.charging ? " ⚡" : ""
       } · ${s.battery.cycle_count ?? "—"} ${t("st.cycles")}</span>
       <span class="metric-label">${fanLine}</span>
@@ -533,6 +582,124 @@ function procRows(procs: ProcessInfo[]): string {
     .join("");
 }
 
+// ---- fan control panel ----
+// The panel lives outside the 2s snapshot re-render: `renderSnapshot` keeps
+// the existing #fan-panel node, so a slider mid-drag is never yanked away.
+// State is refreshed on its own slower cadence and right after each action.
+
+let fanState: FanControlState | null = null;
+let fanError: string | null = null;
+let fanBusy = false;
+let fanDragging = false;
+/** A render requested mid-drag; replayed on pointer release. */
+let fanRenderPending = false;
+let fanTimer: number | null = null;
+
+/** Panel markup for the current fan state; empty on fanless Macs. */
+function fanPanelMarkup(): string {
+  const f = fanState;
+  if (!f || f.fan_count === 0) return "";
+  const min = Math.round(f.min_rpm ?? 0);
+  const max = Math.round(f.max_rpm ?? 0);
+  const target = Math.round(f.target_rpm ?? f.min_rpm ?? 0);
+  const err = fanError ? `<span class="fan-err">${esc(fanError)}</span>` : "";
+  if (!f.running) {
+    return `<span class="sec-label">${t("st.fan.control")}</span>
+      <div class="fan-row">
+        <span class="mono muted">${t("st.fan.auto")}</span>
+        <button id="fan-start" ${fanBusy ? "disabled" : ""}>${t("st.fan.enable")}</button>
+        <span class="muted fan-desc">${t("st.fan.enable.desc")}</span>${err}
+      </div>`;
+  }
+  // Running: mode toggle + slider (slider only active in manual mode).
+  return `<span class="sec-label">${t("st.fan.control")}</span>
+    <div class="fan-row">
+      <button class="toggle ${f.forced ? "on" : ""}" id="fan-mode" ${fanBusy ? "disabled" : ""}></button>
+      <span class="mono">${f.forced ? t("st.fan.manual") : t("st.fan.auto")}</span>
+      <input type="range" id="fan-rpm" min="${min}" max="${max}" step="50" value="${target}"
+        ${f.forced && !fanBusy ? "" : "disabled"} />
+      <span class="mono fan-rpm-label" id="fan-rpm-label">${target} RPM</span>
+      <span class="muted mono fan-desc">${t("st.fan.range")} ${min}–${max}</span>
+      <button id="fan-stop" ${fanBusy ? "disabled" : ""}>${t("st.fan.back")}</button>${err}
+    </div>`;
+}
+
+/** Run one fan action, then re-render from the returned state. */
+async function fanAction(action: () => Promise<FanControlState>): Promise<void> {
+  if (fanBusy) return;
+  fanBusy = true;
+  fanError = null;
+  renderFanPanel();
+  try {
+    fanState = await action();
+  } catch (e) {
+    const code = (e as { code?: string } | null)?.code;
+    // The user closing the password dialog is not an error worth showing.
+    if (code !== "cancelled") fanError = `${t("st.fan.err")}: ${String((e as { message?: string })?.message ?? e)}`;
+  } finally {
+    fanBusy = false;
+    renderFanPanel();
+  }
+}
+
+/** Paint the panel into its node and wire its controls. */
+function renderFanPanel(): void {
+  const panel = document.getElementById("fan-panel");
+  if (!panel) return;
+  if (fanDragging) {
+    fanRenderPending = true;
+    return;
+  }
+  fanRenderPending = false;
+  panel.innerHTML = fanPanelMarkup();
+  panel.classList.toggle("hidden", panel.innerHTML === "");
+  panel.querySelector<HTMLButtonElement>("#fan-start")?.addEventListener("click", () => {
+    void fanAction(fanControlStart);
+  });
+  panel.querySelector<HTMLButtonElement>("#fan-stop")?.addEventListener("click", () => {
+    void fanAction(fanControlStop);
+  });
+  panel.querySelector<HTMLButtonElement>("#fan-mode")?.addEventListener("click", () => {
+    const slider = panel.querySelector<HTMLInputElement>("#fan-rpm");
+    const rpm = Number(slider?.value ?? fanState?.min_rpm ?? 0);
+    void fanAction(fanState?.forced ? fanControlAuto : () => fanControlSet(rpm));
+  });
+  const slider = panel.querySelector<HTMLInputElement>("#fan-rpm");
+  const label = panel.querySelector<HTMLElement>("#fan-rpm-label");
+  if (!slider) return;
+  // The drag flag follows the pointer, not `input`/`change`: a `change` that
+  // never fires (drag interrupted) would otherwise freeze the panel forever.
+  const release = () => {
+    if (!fanDragging) return;
+    fanDragging = false;
+    if (fanRenderPending) renderFanPanel();
+  };
+  slider.addEventListener("pointerdown", () => {
+    fanDragging = true;
+  });
+  slider.addEventListener("pointerup", release);
+  slider.addEventListener("pointercancel", release);
+  slider.addEventListener("lostpointercapture", release);
+  slider.addEventListener("input", () => {
+    if (label) label.textContent = `${slider.value} RPM`;
+  });
+  // Apply on release only: one SMC write per gesture, not per pixel.
+  slider.addEventListener("change", () => {
+    release();
+    void fanAction(() => fanControlSet(Number(slider.value)));
+  });
+}
+
+/** Poll the daemon/SMC state (slower than the snapshot; it rarely changes). */
+async function refreshFan(): Promise<void> {
+  try {
+    fanState = await fanControlStatus();
+  } catch {
+    fanState = null;
+  }
+  renderFanPanel();
+}
+
 /** Re-render immediately when the window becomes visible again. */
 let onVisible: (() => void) | null = null;
 
@@ -549,6 +716,10 @@ export const dashboard: View = {
     timer = window.setInterval(() => {
       if (!document.hidden) void refresh(container);
     }, 2000);
+    void refreshFan();
+    fanTimer = window.setInterval(() => {
+      if (!document.hidden && !fanBusy) void refreshFan();
+    }, 6000);
     onVisible = () => {
       if (!document.hidden) void refresh(container);
     };
@@ -558,6 +729,10 @@ export const dashboard: View = {
     if (timer !== null) {
       clearInterval(timer);
       timer = null;
+    }
+    if (fanTimer !== null) {
+      clearInterval(fanTimer);
+      fanTimer = null;
     }
     if (onVisible !== null) {
       document.removeEventListener("visibilitychange", onVisible);

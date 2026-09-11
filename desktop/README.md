@@ -21,7 +21,10 @@ are documented in [`docs/BRAND_GUIDELINES.md`](docs/BRAND_GUIDELINES.md).
 - `crates/mole-helper` — the privileged helper: in-helper re-validation and
   mutable-ancestor refusal logic ship now; the SMAppService/XPC transport and
   signing land with release tooling (until then system-scope actions refuse
-  with `requires_admin`).
+  with `requires_admin`). Its `fan-daemon` mode is live: bundled as a Tauri
+  sidecar (`scripts/build-helper.sh` → `src-tauri/binaries/`), launched as
+  root through the admin prompt, it drives fan RPM over a user-only Unix
+  socket and hands fans back to macOS whenever the GUI is gone.
 - `crates/mole-ops` — feature logic: status, analyze, clean, uninstall, purge,
   installer, optimize, touchid, history, whitelist. Destructive features build
   a `DeletionPlan` and execute only through `engine::execute` → the sink.

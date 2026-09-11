@@ -1,7 +1,8 @@
 # mole-helper: the privileged helper. Ships as an SMAppService-registered
 # daemon in the signed app bundle; every request is RE-validated in-process
 # (the helper never trusts its caller). Until the signing/registration phase
-# lands in release tooling, the transport half is a refusing stub.
+# lands in release tooling, the XPC transport half is a refusing stub; the
+# `fan-daemon` mode (root via the admin prompt, Unix-socket protocol) is live.
 [package]
 name = "mole-helper"
 version = "0.1.0"
@@ -11,6 +12,7 @@ repository.workspace = true
 
 [dependencies]
 mole-core = { path = "../mole-core" }
+mole-ops = { path = "../mole-ops" }
 libc.workspace = true
 
 [dev-dependencies]

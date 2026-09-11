@@ -1,6 +1,12 @@
 # Tidy standalone Makefile — adapted from the original Mole repo's desktop-*
 # targets so the README's `make desktop-*` commands also work in this checkout.
-.PHONY: dev build bundle release publish site-deploy check desktop-dev desktop-build desktop-bundle desktop-check
+.PHONY: dev build bundle release publish site-deploy check helper desktop-dev desktop-build desktop-bundle desktop-check
+
+# mole-helper is bundled as a Tauri sidecar (bundle.externalBin), so it must
+# exist under src-tauri/binaries/ before any tauri dev/build. See
+# desktop/scripts/build-helper.sh.
+helper:
+	desktop/scripts/build-helper.sh
 
 # The tauri CLI must run from desktop/ (it locates src-tauri/tauri.conf.json
 # by scanning subfolders of the invocation directory).
@@ -8,18 +14,18 @@
 # Vite project) and hands the SAME port to Vite (TAURI_DEV_PORT, read by
 # ui/vite.config.ts) and to the Tauri CLI (devUrl override), so the two never
 # disagree. Set TAURI_DEV_PORT yourself to pin one.
-dev:
+dev: helper
 	cd desktop && npm install --prefix ui && \
 	PORT=$${TAURI_DEV_PORT:-$$(node -e 'const s=require("net").createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')} && \
 	echo "dev server on http://localhost:$$PORT" && \
 	TAURI_DEV_PORT=$$PORT ui/node_modules/.bin/tauri dev --config "{\"build\":{\"devUrl\":\"http://localhost:$$PORT\"}}"
 
-build:
+build: helper
 	cd desktop && npm ci --prefix ui && ui/node_modules/.bin/tauri build --no-bundle
 
 # Full bundle: Tidy.app + DMG, both carrying icons/icon.icns. The extra
 # set-dmg-icon step themes the .dmg FILE; tauri only themes the mounted volume.
-bundle:
+bundle: helper
 	cd desktop && npm ci --prefix ui && ui/node_modules/.bin/tauri build
 	desktop/scripts/set-dmg-icon.sh desktop/target/release/bundle/dmg/*.dmg
 

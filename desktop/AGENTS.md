@@ -20,9 +20,10 @@ destructive policy separate:
 Run commands from the repository root unless noted otherwise:
 
 ```bash
-make desktop-dev      # install UI dependencies and start Tauri development
+make desktop-dev      # build the mole-helper sidecar, install UI deps, start Tauri dev
 make desktop-check    # format, Clippy, Rust tests, and TypeScript checking
 make desktop-build    # compile an unsigned app without bundling
+cd desktop && scripts/build-helper.sh   # sidecar needed before any raw `tauri dev|build`
 cd desktop && cargo test --workspace
 cd desktop && cargo clippy --workspace -- -D warnings
 cd desktop/ui && npm run build

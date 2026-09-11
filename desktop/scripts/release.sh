@@ -94,6 +94,8 @@ echo "▶ building + signing with: $IDENTITY"
 echo "▶ target: $TARGET"
 export APPLE_SIGNING_IDENTITY="$IDENTITY"
 npm ci --prefix ui
+# 风扇守护进程随包发布（sidecar），必须先构建并放到 src-tauri/binaries/。
+scripts/build-helper.sh "$TARGET"
 ui/node_modules/.bin/tauri build --target "$TARGET"
 
 BUNDLE="target/$TARGET/release/bundle"

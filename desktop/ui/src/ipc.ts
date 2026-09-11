@@ -12,6 +12,7 @@ import type {
   EmbeddedLoginItem,
   ExecItem,
   ExecReport,
+  FanControlState,
   OptimizeTask,
   PlanSummary,
   ProcessDetail,
@@ -62,6 +63,12 @@ export const newTaskId = () => `task-${++taskCounter}-${Date.now()}`;
 
 export const appMeta = () => invoke<AppMeta>("app_meta");
 export const statusSnapshot = () => invoke<StatusSnapshot>("status_snapshot");
+
+export const fanControlStatus = () => invoke<FanControlState>("fan_control_status");
+export const fanControlStart = () => invoke<FanControlState>("fan_control_start");
+export const fanControlSet = (rpm: number) => invoke<FanControlState>("fan_control_set", { rpm });
+export const fanControlAuto = () => invoke<FanControlState>("fan_control_auto");
+export const fanControlStop = () => invoke<FanControlState>("fan_control_stop");
 
 export const whitelistGet = () => invoke<WhitelistPayload>("whitelist_get");
 export const whitelistSet = (patterns: string[]) =>

@@ -48,7 +48,6 @@ export interface BatteryStatus {
   percent: number;
   charging: boolean;
   cycle_count: number | null;
-  temperature_c: number | null;
   health_percent: number | null;
   watts: number | null;
 }
@@ -71,6 +70,22 @@ export interface FanStatus {
   min_rpm: number | null;
   max_rpm: number | null;
   target_rpm: number | null;
+}
+
+/** Fan-control panel state: daemon liveness, forced target, slider band. */
+export interface FanControlState {
+  running: boolean;
+  forced: boolean;
+  target_rpm: number | null;
+  min_rpm: number | null;
+  max_rpm: number | null;
+  fan_count: number;
+}
+
+/** Hottest CPU/GPU die sensor in °C; null when the SMC exposes none. */
+export interface Temperatures {
+  cpu_c: number | null;
+  gpu_c: number | null;
 }
 
 export interface HardwareInfo {
@@ -97,6 +112,7 @@ export interface StatusSnapshot {
   battery: BatteryStatus | null;
   network: NetworkStatus;
   fans: FanStatus[];
+  temperatures: Temperatures;
   top_processes: ProcessInfo[];
 }
 

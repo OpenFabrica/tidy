@@ -47,6 +47,107 @@ pub async fn status_snapshot() -> Result<mole_ops::status::StatusSnapshot, IpcEr
         .map_err(|e| IpcError::new("io", e.to_string()))
 }
 
+/// Fan control state for the dashboard panel. `running` = the root daemon
+/// answers; `forced`/`target_rpm` come from it. `min_rpm`/`max_rpm` are the
+/// first fan's band (the slider range); `fan_count` 0 means no fan control.
+#[derive(Serialize)]
+pub struct FanControlState {
+    pub running: bool,
+    pub forced: bool,
+    pub target_rpm: Option<f32>,
+    pub min_rpm: Option<f32>,
+    pub max_rpm: Option<f32>,
+    pub fan_count: usize,
+}
+
+/// Path of the fan daemon binary: `mole-helper` next to the app binary
+/// (Contents/MacOS in the bundle, target/debug|release in dev).
+fn helper_binary() -> Result<std::path::PathBuf, IpcError> {
+    let exe = std::env::current_exe().map_err(|e| IpcError::new("io", e.to_string()))?;
+    let dir = exe
+        .parent()
+        .ok_or_else(|| IpcError::new("io", "no exe dir".to_string()))?;
+    Ok(dir.join("mole-helper"))
+}
+
+/// Assemble the fan-control state from SMC reads plus the daemon (if up).
+fn fan_control_state() -> FanControlState {
+    let fans = mole_ops::smc::fans();
+    let daemon = mole_ops::fancontrol::status();
+    FanControlState {
+        running: daemon.is_some(),
+        forced: daemon
+            .as_ref()
+            .map(|d| d.forced)
+            .or_else(mole_ops::smc::fans_forced)
+            .unwrap_or(false),
+        target_rpm: daemon.and_then(|d| d.target_rpm),
+        min_rpm: fans.first().and_then(|f| f.min_rpm),
+        max_rpm: fans.first().and_then(|f| f.max_rpm),
+        fan_count: fans.len(),
+    }
+}
+
+/// Current fan-control state (cheap: a few SMC reads + one socket call).
+#[tauri::command]
+pub async fn fan_control_status() -> Result<FanControlState, IpcError> {
+    tauri::async_runtime::spawn_blocking(fan_control_state)
+        .await
+        .map_err(|e| IpcError::new("io", e.to_string()))
+}
+
+/// Start the root fan daemon (native admin prompt). Idempotent.
+#[tauri::command]
+pub async fn fan_control_start() -> Result<FanControlState, IpcError> {
+    let helper = helper_binary()?;
+    tauri::async_runtime::spawn_blocking(move || {
+        mole_ops::fancontrol::start(&helper).map_err(|e| {
+            let code = if e == "cancelled" {
+                "cancelled"
+            } else {
+                "fan-daemon"
+            };
+            IpcError::new(code, e)
+        })?;
+        Ok(fan_control_state())
+    })
+    .await
+    .map_err(|e| IpcError::new("io", e.to_string()))?
+}
+
+/// Force all fans to `rpm` (daemon clamps into the real band).
+#[tauri::command]
+pub async fn fan_control_set(rpm: f32) -> Result<FanControlState, IpcError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        mole_ops::fancontrol::set_rpm(rpm).map_err(|e| IpcError::new("fan-daemon", e))?;
+        Ok(fan_control_state())
+    })
+    .await
+    .map_err(|e| IpcError::new("io", e.to_string()))?
+}
+
+/// Hand fans back to macOS; the daemon keeps running for the session.
+#[tauri::command]
+pub async fn fan_control_auto() -> Result<FanControlState, IpcError> {
+    tauri::async_runtime::spawn_blocking(|| {
+        mole_ops::fancontrol::set_auto().map_err(|e| IpcError::new("fan-daemon", e))?;
+        Ok(fan_control_state())
+    })
+    .await
+    .map_err(|e| IpcError::new("io", e.to_string()))?
+}
+
+/// Restore auto and shut the daemon down.
+#[tauri::command]
+pub async fn fan_control_stop() -> Result<FanControlState, IpcError> {
+    tauri::async_runtime::spawn_blocking(|| {
+        mole_ops::fancontrol::stop().map_err(|e| IpcError::new("fan-daemon", e))?;
+        Ok(fan_control_state())
+    })
+    .await
+    .map_err(|e| IpcError::new("io", e.to_string()))?
+}
+
 /// Whitelist payload: valid patterns plus the warnings invalid lines produced.
 #[derive(Serialize)]
 pub struct WhitelistPayload {

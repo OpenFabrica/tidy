@@ -8,6 +8,7 @@ pub mod appmeta;
 pub mod clean;
 pub mod docker;
 pub mod engine;
+pub mod fancontrol;
 pub mod history;
 pub mod installer;
 pub mod optimize;

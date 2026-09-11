@@ -1988,6 +1988,7 @@ version = "0.1.0"
 dependencies = [
  "libc",
  "mole-core",
+ "mole-ops",
  "tempfile",
 ]
 
@@ -3965,7 +3966,7 @@ dependencies = [
 
 [[package]]
 name = "tidy"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "base64 0.22.1",
  "core-foundation 0.10.1",

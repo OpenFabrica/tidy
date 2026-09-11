@@ -220,6 +220,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::app_meta,
             commands::status_snapshot,
+            commands::fan_control_status,
+            commands::fan_control_start,
+            commands::fan_control_set,
+            commands::fan_control_auto,
+            commands::fan_control_stop,
             commands::process_detail,
             commands::signal_process,
             commands::whitelist_get,
@@ -274,8 +279,11 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("error while running mole desktop")
         // 退出前把遥测队列发一次，否则一次会话的事件要等到下次启动才补发。
+        // 同时关掉风扇守护进程（它自己也会在发现 GUI 消失后恢复自动，这里只是
+        // 让恢复更快、更确定）。
         .run(|_app, event| {
             if matches!(event, tauri::RunEvent::Exit) {
+                let _ = mole_ops::fancontrol::stop();
                 mole_telemetry::flush();
             }
         });
