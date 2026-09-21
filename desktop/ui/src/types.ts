@@ -225,6 +225,24 @@ export interface DockerPlanPayload {
   images: DockerImage[];
 }
 
+/** One Shutdown simulator device (mirror of mole_ops::simulators::SimDevice). */
+export interface SimDevice {
+  udid: string;
+  name: string;
+  /** Human-readable runtime, e.g. "iOS 26.3". */
+  runtime: string;
+  state: string;
+  /** False when the device's runtime is no longer installed. */
+  is_available: boolean;
+  size_kb: number | null;
+  age_days: number | null;
+}
+
+export interface SimulatorPlanPayload {
+  summary: PlanSummary;
+  devices: SimDevice[];
+}
+
 export interface PurgePlanPayload {
   summary: PlanSummary;
   projects: ProjectReport[];
@@ -342,7 +360,6 @@ export interface OrphanPlanPayload {
 /** What a tool item removes (mirror of mole_ops::tools::ToolTarget). */
 export type ToolTarget =
   | { kind: "snapshot"; stamp: string }
-  | { kind: "simulator"; udid: string }
   | { kind: "brew_cleanup" };
 
 /** One command-backed reclaimable (mirror of mole_ops::tools::ToolItem). */

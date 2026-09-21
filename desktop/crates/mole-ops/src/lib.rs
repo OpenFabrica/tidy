@@ -15,6 +15,7 @@ pub mod optimize;
 pub mod orphans;
 pub mod purge;
 pub mod scanutil;
+pub mod simulators;
 pub mod smc;
 pub mod status;
 pub mod tools;

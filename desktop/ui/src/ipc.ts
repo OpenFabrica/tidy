@@ -27,6 +27,7 @@ import type {
   UpdateResult,
   WhitelistPayload,
   DockerPlanPayload,
+  SimulatorPlanPayload,
   OrphanPlanPayload,
   ToolPlanPayload,
   AppSettings,
@@ -121,6 +122,18 @@ export const executeDocker = (
 ) =>
   invoke<ExecReport>("execute_docker", { planId, selection, onProgress: channel(onProgress) });
 
+export const planSimulators = (taskId: string) =>
+  invoke<SimulatorPlanPayload>("plan_simulators", { taskId });
+
+/** Simulator devices are removed by `simctl delete`, not the file sink
+ * (deleting the folder would leave a ghost device in CoreSimulator). */
+export const executeSimulators = (
+  planId: string,
+  selection: string[],
+  onProgress: (item: ExecItem) => void,
+) =>
+  invoke<ExecReport>("execute_simulators", { planId, selection, onProgress: channel(onProgress) });
+
 export const planInstaller = (taskId: string) =>
   invoke<PlanSummary>("plan_installer", { taskId });
 
@@ -131,7 +144,7 @@ export const planTrash = (taskId: string) => invoke<PlanSummary>("plan_trash", {
 export const planOrphans = (taskId: string) =>
   invoke<OrphanPlanPayload>("plan_orphans", { taskId });
 
-/** Snapshots / simulators / Homebrew: removed by their own CLIs. */
+/** Snapshots / Homebrew: removed by their own CLIs. */
 export const planTools = (taskId: string) => invoke<ToolPlanPayload>("plan_tools", { taskId });
 
 export const executeTools = (

@@ -392,8 +392,8 @@ pub struct ToolPlanPayload {
     pub items: Vec<mole_ops::tools::ToolItem>,
 }
 
-/// Command-backed reclaimables (Time Machine local snapshots, unavailable
-/// simulators, Homebrew cleanup) as one "tools" section. Same boundary rule
+/// Command-backed reclaimables (Time Machine local snapshots, Homebrew
+/// cleanup) as one "tools" section. Same boundary rule
 /// as Docker: execute_tools accepts only ids from this scan.
 #[tauri::command]
 pub async fn plan_tools(
@@ -403,10 +403,9 @@ pub async fn plan_tools(
     let _busy = crate::tray_anim::busy();
     let cancel = state.cancel_flag(&task_id);
     let cancel_probe = cancel.clone();
-    let home = crate::home();
     let items = tauri::async_runtime::spawn_blocking(move || {
         let probes = SystemProbes::new();
-        mole_ops::tools::scan(&home, &probes, &cancel)
+        mole_ops::tools::scan(&probes, &cancel)
     })
     .await
     .map_err(|e| IpcError::new("io", e.to_string()))?;
@@ -507,6 +506,125 @@ pub async fn execute_tools(
     .map_err(|e| IpcError::new("io", e.to_string()))?;
     // Any real run invalidates the scan (disk no longer matches).
     state.clear_tools();
+    Ok(report)
+}
+
+/// Simulator plan payload: preview plus the raw device rows (runtime / age).
+#[derive(Serialize)]
+pub struct SimulatorPlanPayload {
+    pub summary: PlanSummary,
+    pub devices: Vec<mole_ops::simulators::SimDevice>,
+}
+
+/// Shutdown iOS Simulator devices as one "simulators" section. Item ids are
+/// the device UDIDs; execute_simulators only accepts those.
+#[tauri::command]
+pub async fn plan_simulators(
+    state: State<'_, AppState>,
+    task_id: String,
+) -> Result<SimulatorPlanPayload, IpcError> {
+    let _busy = crate::tray_anim::busy();
+    let cancel = state.cancel_flag(&task_id);
+    let cancel_probe = cancel.clone();
+    let home = crate::home();
+    let scanned = tauri::async_runtime::spawn_blocking(move || {
+        let probes = SystemProbes::new();
+        mole_ops::simulators::scan(&home, &probes, &cancel)
+    })
+    .await
+    .map_err(|e| IpcError::new("io", e.to_string()))?;
+    state.clear_task(&task_id);
+    if cancel_probe.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(IpcError::new("cancelled", "scan cancelled"));
+    }
+    let devices = scanned.map_err(|e| IpcError::new("unavailable", e.reason()))?;
+
+    let mut udids = std::collections::HashSet::new();
+    let mut items = Vec::new();
+    for dev in &devices {
+        udids.insert(dev.udid.clone());
+        items.push(PlanItem {
+            id: dev.udid.clone(),
+            path: dev.name.clone(),
+            size_kb: dev.size_kb,
+            item_count: 1,
+            scope: "user",
+        });
+    }
+    let total_kb = items.iter().map(|i| i.size_kb.unwrap_or(0)).sum();
+    let count = items.len();
+    let plan_id = state.store_simulators(udids);
+    Ok(SimulatorPlanPayload {
+        summary: PlanSummary {
+            plan_id,
+            sections: vec![PlanSection {
+                title: "simulators".into(),
+                items,
+                total_kb,
+            }],
+            total_kb,
+            count,
+        },
+        devices,
+    })
+}
+
+/// Delete the selected simulator devices through `simctl delete` (never by
+/// removing their folders: CoreSimulatorService would keep a ghost device).
+/// Each device is re-checked to still be Shutdown right before deletion.
+#[tauri::command]
+pub async fn execute_simulators(
+    state: State<'_, AppState>,
+    plan_id: String,
+    selection: Vec<String>,
+    on_progress: Channel<ExecItem>,
+) -> Result<ExecReport, IpcError> {
+    let _busy = crate::tray_anim::busy();
+    for udid in &selection {
+        state.simulator_target(&plan_id, udid).map_err(|code| {
+            IpcError::new(
+                code_static(code),
+                "simulator scan unavailable — re-run the scan",
+            )
+        })?;
+    }
+    let report = tauri::async_runtime::spawn_blocking(move || {
+        let probes = SystemProbes::new();
+        let mut report = ExecReport {
+            items: Vec::new(),
+            total_freed_kb: 0,
+            skipped: 0,
+            failed: 0,
+        };
+        for udid in selection {
+            let item = match mole_ops::simulators::delete(&udid, &probes) {
+                Ok(()) => ExecItem {
+                    id: udid.clone(),
+                    path: udid,
+                    outcome: "removed".into(),
+                    size_kb: None,
+                    error: None,
+                },
+                Err(e) => {
+                    report.failed += 1;
+                    ExecItem {
+                        id: udid.clone(),
+                        path: udid,
+                        outcome: "failed".into(),
+                        size_kb: None,
+                        error: Some(e),
+                    }
+                }
+            };
+            let _ = on_progress.send(item.clone());
+            report.items.push(item);
+        }
+        report
+    })
+    .await
+    .map_err(|e| IpcError::new("io", e.to_string()))?;
+    // Any real run invalidates the scan (the device set changed).
+    state.clear_simulators();
     Ok(report)
 }
 

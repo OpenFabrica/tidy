@@ -61,6 +61,7 @@ const SIMULATOR_GUARD: &[&str] = &["Simulator"];
 /// a running guard may hold entries open, so Active/Unknown keeps it out.
 const PKG_CACHES: &[(&str, &[&str])] = &[
     (".npm/_cacache", &["npm"]),
+    (".npm/_npx", &["npm", "npx"]),
     (".cargo/registry/cache", &["cargo", "rustc"]),
     (".cargo/registry/src", &["cargo", "rustc"]),
     (".cargo/git/checkouts", &["cargo", "rustc"]),
@@ -80,6 +81,22 @@ const PKG_CACHES: &[(&str, &[&str])] = &[
     (".composer/cache", &["composer"]),
     (".nuget/packages", &["dotnet"]),
 ];
+
+/// Desktop AI apps that download a whole Linux VM image for their sandboxed
+/// agent, as (dir under ~/Library/Application Support, guard processes). The
+/// app re-downloads the image the next time the feature needs it; a running
+/// app may have the image mounted, so Active/Unknown keeps it out.
+const AI_VM_BUNDLES: &[(&str, &[&str])] = &[("Claude/vm_bundles", &["Claude"])];
+
+/// Lima data-disk stores relative to $HOME: plain lima and colima's private
+/// LIMA_HOME. Disks live in `<root>/_disks/<name>`, instances in `<root>/<name>`.
+const LIMA_HOMES: &[&str] = &[".lima", ".colima/_lima"];
+
+/// Any of these running may be attaching or detaching a disk right now.
+const LIMA_GUARD: &[&str] = &["limactl", "colima"];
+
+/// Homebrew prefixes whose leftover `Cellar.*` copies are offered.
+const BREW_PREFIXES: &[&str] = &["/opt/homebrew", "/usr/local"];
 
 /// Apple sandbox containers whose caches are worth sweeping. Every other
 /// com.apple.* container stays untouched: their cache folders double as
@@ -393,6 +410,32 @@ pub fn build_plan(
     progress("pkg_cache", pkg.len());
     plan.candidates.extend(pkg);
 
+    // --- Section: AI app VM images (re-downloaded on demand, app-idle gated) ---
+    let ai_vm_paths = ai_vm_entries(home, probes, &whitelist.patterns, &policy_ctx);
+    let ai_vm = scanutil::parallel_candidates(&ai_vm_paths, "ai_vm", Scope::User, cancel);
+    progress("ai_vm", ai_vm.len());
+    plan.candidates.extend(ai_vm);
+
+    // --- Section: orphaned lima/colima data disks (opt-in in the UI) ---
+    let vm_disk_paths = if probes.any_process_running(LIMA_GUARD) == TriState::Idle {
+        orphan_lima_disks(home, &whitelist.patterns, &policy_ctx)
+    } else {
+        Vec::new()
+    };
+    let vm_disks = scanutil::parallel_candidates(&vm_disk_paths, "vm_disks", Scope::User, cancel);
+    progress("vm_disks", vm_disks.len());
+    plan.candidates.extend(vm_disks);
+
+    // --- Section: leftover Homebrew Cellar copies (opt-in in the UI) ---
+    let brew_paths = if probes.any_process_running(&["brew"]) == TriState::Idle {
+        brew_backup_entries(&brew_prefixes(), &whitelist.patterns, &policy_ctx)
+    } else {
+        Vec::new()
+    };
+    let brew = scanutil::parallel_candidates(&brew_paths, "brew_backup", Scope::User, cancel);
+    progress("brew_backup", brew.len());
+    plan.candidates.extend(brew);
+
     // --- Section: per-user Darwin cache dir (/var/folders/.../C) ---
     let darwin_paths = darwin_cache_root()
         .map(|root| darwin_cache_candidates(&root, probes, &whitelist.patterns, &policy_ctx))
@@ -660,6 +703,131 @@ fn pkg_cache_entries(
             continue;
         }
         out.push(path);
+    }
+    out
+}
+
+/// Children of each AI_VM_BUNDLES dir whose owner app is provably idle and
+/// which neither policy nor the whitelist protects.
+fn ai_vm_entries(
+    home: &str,
+    probes: &dyn LiveProbes,
+    whitelist: &[String],
+    ctx: &PolicyCtx,
+) -> Vec<PathBuf> {
+    let support = PathBuf::from(home).join("Library/Application Support");
+    let mut out = Vec::new();
+    for (rel, guards) in AI_VM_BUNDLES {
+        let children = dir_children(&support.join(rel));
+        if children.is_empty() || probes.any_process_running(guards) != TriState::Idle {
+            continue;
+        }
+        out.extend(children.into_iter().filter(|path| {
+            let path_str = path.to_string_lossy();
+            !policy::should_protect_path(&path_str, ctx)
+                && !policy::is_path_whitelisted(&path_str, whitelist)
+        }));
+    }
+    out
+}
+
+/// Lima data disks no instance can still use. A disk is kept when ANY of
+/// these vouches for it:
+/// - its `in_use_by` lock link exists (an instance has it attached);
+/// - an instance dir of the same name exists;
+/// - some instance's lima.yaml mentions its name (lima releases the lock
+///   when an instance stops, so a stopped instance's disk has no link);
+/// - for colima's `colima-<profile>` disks, the `~/.colima/<profile>` dir
+///   still exists.
+///
+/// The yaml check is a plain substring match on purpose: a false "still
+/// referenced" only keeps a disk, never deletes one.
+fn orphan_lima_disks(home: &str, whitelist: &[String], ctx: &PolicyCtx) -> Vec<PathBuf> {
+    let home_path = PathBuf::from(home);
+    let mut out = Vec::new();
+    for rel in LIMA_HOMES {
+        let root = home_path.join(rel);
+        let disks = dir_children(&root.join("_disks"));
+        if disks.is_empty() {
+            continue;
+        }
+        let instance_yamls: Vec<String> = dir_children(&root)
+            .iter()
+            .filter(|p| {
+                !p.file_name()
+                    .is_some_and(|n| n.to_string_lossy().starts_with('_'))
+            })
+            .filter_map(|p| std::fs::read_to_string(p.join("lima.yaml")).ok())
+            .collect();
+        for disk in disks {
+            let Some(name) = disk.file_name().map(|n| n.to_string_lossy().into_owned()) else {
+                continue;
+            };
+            let in_use = std::fs::symlink_metadata(disk.join("in_use_by")).is_ok();
+            let colima_profile_alive = *rel == ".colima/_lima"
+                && name
+                    .strip_prefix("colima-")
+                    .is_some_and(|profile| home_path.join(".colima").join(profile).exists());
+            let referenced = root.join(&name).exists()
+                || instance_yamls
+                    .iter()
+                    .any(|yaml| yaml.contains(name.as_str()));
+            let is_real_dir = std::fs::symlink_metadata(&disk).is_ok_and(|m| m.is_dir());
+            if !is_real_dir || in_use || colima_profile_alive || referenced {
+                continue;
+            }
+            let path_str = disk.to_string_lossy();
+            if policy::should_protect_path(&path_str, ctx)
+                || policy::is_path_whitelisted(&path_str, whitelist)
+            {
+                continue;
+            }
+            out.push(disk);
+        }
+    }
+    out
+}
+
+/// Homebrew prefixes present on this machine. Unit tests build plans against
+/// a temp home and must stay hermetic, so the real prefixes are never
+/// consulted under cfg(test); the entry filter is tested against a fixture.
+fn brew_prefixes() -> Vec<PathBuf> {
+    if cfg!(test) {
+        return Vec::new();
+    }
+    BREW_PREFIXES
+        .iter()
+        .map(PathBuf::from)
+        .filter(|p| p.is_dir())
+        .collect()
+}
+
+/// `Cellar.<suffix>` directories beside a prefix's live `Cellar` (manual
+/// backups like `Cellar.bak` left behind by migrations). Homebrew never reads
+/// them; the live `Cellar` itself is never matched.
+fn brew_backup_entries(
+    prefixes: &[PathBuf],
+    whitelist: &[String],
+    ctx: &PolicyCtx,
+) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    for prefix in prefixes {
+        for path in dir_children(prefix) {
+            let is_backup = path
+                .file_name()
+                .is_some_and(|n| n.to_string_lossy().starts_with("Cellar."));
+            let is_real_dir = std::fs::symlink_metadata(&path).is_ok_and(|m| m.is_dir());
+            if !is_backup || !is_real_dir {
+                continue;
+            }
+            let path_str = path.to_string_lossy();
+            if policy::should_protect_path(&path_str, ctx)
+                || policy::is_path_whitelisted(&path_str, whitelist)
+            {
+                continue;
+            }
+            out.push(path);
+        }
     }
     out
 }
@@ -1223,5 +1391,91 @@ mod tests {
             sqlite_state: mole_core::probes::TriState::Idle,
         };
         assert!(darwin_cache_candidates(&root, &unknown, &[], &ctx).is_empty());
+    }
+
+    /// Only Claude's VM image children become candidates, and only while the
+    /// app is provably idle.
+    #[test]
+    fn ai_vm_entries_need_idle_app() {
+        let tmp = tempfile::tempdir().unwrap();
+        let home = tmp.path().to_string_lossy().into_owned();
+        let bundles = tmp
+            .path()
+            .join("Library/Application Support/Claude/vm_bundles");
+        std::fs::create_dir_all(bundles.join("claudevm.bundle")).unwrap();
+        std::fs::create_dir_all(tmp.path().join("Library/Application Support/Claude/data"))
+            .unwrap();
+        let ctx = PolicyCtx {
+            home: home.clone(),
+            uninstall_mode: false,
+        };
+        let got = ai_vm_entries(&home, &StubProbes::idle(), &[], &ctx);
+        assert_eq!(got, vec![bundles.join("claudevm.bundle")]);
+
+        let unknown = StubProbes {
+            owner_state: mole_core::probes::TriState::Unknown,
+            sqlite_state: mole_core::probes::TriState::Idle,
+        };
+        assert!(ai_vm_entries(&home, &unknown, &[], &ctx).is_empty());
+    }
+
+    /// A lima disk is offered only when nothing vouches for it: no lock link,
+    /// no same-named instance, no yaml reference, no live colima profile.
+    #[test]
+    fn orphan_lima_disks_skip_every_referenced_disk() {
+        let tmp = tempfile::tempdir().unwrap();
+        let home = tmp.path().to_string_lossy().into_owned();
+        let colima = tmp.path().join(".colima/_lima");
+        let disks = colima.join("_disks");
+        for name in [
+            "colima-gone",
+            "locked",
+            "stopped-ref",
+            "colima-alive",
+            "colima",
+        ] {
+            std::fs::create_dir_all(disks.join(name)).unwrap();
+        }
+        std::os::unix::fs::symlink(colima.join("inst"), disks.join("locked/in_use_by")).unwrap();
+        std::fs::create_dir_all(colima.join("inst")).unwrap();
+        std::fs::write(
+            colima.join("inst/lima.yaml"),
+            "additionalDisks:\n- name: stopped-ref\n",
+        )
+        .unwrap();
+        std::fs::create_dir_all(tmp.path().join(".colima/alive")).unwrap();
+        std::fs::create_dir_all(colima.join("colima")).unwrap();
+        // A plain file under _disks is never a disk.
+        std::fs::write(disks.join("stray-file"), b"x").unwrap();
+
+        let ctx = PolicyCtx {
+            home: home.clone(),
+            uninstall_mode: false,
+        };
+        let got = orphan_lima_disks(&home, &[], &ctx);
+        assert_eq!(got, vec![disks.join("colima-gone")]);
+
+        // The whitelist keeps an orphan too.
+        let wl = vec![disks.join("colima-gone").to_string_lossy().into_owned()];
+        assert!(orphan_lima_disks(&home, &wl, &ctx).is_empty());
+    }
+
+    /// Only real `Cellar.*` directories match; the live Cellar, plain files
+    /// and symlinks never do.
+    #[test]
+    fn brew_backup_entries_match_only_cellar_copies() {
+        let tmp = tempfile::tempdir().unwrap();
+        let prefix = tmp.path().join("usr-local");
+        for name in ["Cellar", "Cellar.bak", "Caskroom"] {
+            std::fs::create_dir_all(prefix.join(name)).unwrap();
+        }
+        std::fs::write(prefix.join("Cellar.old"), b"x").unwrap();
+        std::os::unix::fs::symlink(prefix.join("Cellar"), prefix.join("Cellar.link")).unwrap();
+        let ctx = PolicyCtx {
+            home: tmp.path().to_string_lossy().into_owned(),
+            uninstall_mode: false,
+        };
+        let got = brew_backup_entries(std::slice::from_ref(&prefix), &[], &ctx);
+        assert_eq!(got, vec![prefix.join("Cellar.bak")]);
     }
 }

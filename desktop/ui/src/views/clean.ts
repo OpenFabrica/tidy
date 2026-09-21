@@ -1,7 +1,7 @@
 // Clean view (newspaper skin): a front-page hero — issue kicker, serif
 // headline, lede, framed CTA and a monospaced statline drawn from the local
 // ledger — then one merged scan (system clean + project build artifacts +
-// installer leftovers + docker + Trash contents + orphaned leftovers +
+// installer leftovers + docker + simulators + Trash contents + orphaned leftovers +
 // command-backed tools) → ledger preview → confirm → execute →
 // reclaimed-space page. Every extra plan keeps its own backend plan/execute
 // funnel; this surface only merges their sections into one flow.
@@ -14,10 +14,12 @@ import {
   planInstaller,
   planPurge,
   planDocker,
+  planSimulators,
   planTrash,
   planOrphans,
   planTools,
   executeDocker,
+  executeSimulators,
   executeTools,
 } from "../ipc";
 import { confirmSheet, renderFlow, runExecution } from "../flow";
@@ -34,13 +36,23 @@ import type {
   OrphanInfo,
   PlanSummary,
   ProjectReport,
+  SimDevice,
   ToolItem,
 } from "../types";
 
 /** Sections that are shown but left unchecked until the user opts in: the
  * evidence is indirect (orphans), the data is irreplaceable (backups,
- * archives), or the removal is permanent by nature (Trash contents). */
-const OPT_IN_SECTIONS = new Set(["trash", "orphans", "xcode_archives", "ios_backups"]);
+ * archives, simulator app data), or the removal is permanent by nature
+ * (Trash contents). */
+const OPT_IN_SECTIONS = new Set([
+  "trash",
+  "orphans",
+  "xcode_archives",
+  "ios_backups",
+  "simulators",
+  "vm_disks",
+  "brew_backup",
+]);
 
 export const clean: View = {
   mount(container) {
@@ -84,7 +96,9 @@ export const clean: View = {
       let backups: BackupInfo[] = [];
       let orphans: OrphanInfo[] = [];
       let tools: ToolItem[] = [];
+      let sims: SimDevice[] = [];
       let dockerPlanId = "";
+      let simsPlanId = "";
       let toolsPlanId = "";
       const idleDays = purgeIdleDays();
       const idleMonths = dockerIdleMonths();
@@ -93,6 +107,7 @@ export const clean: View = {
       const purgeTask = newTaskId();
       const installerTask = newTaskId();
       const dockerTask = newTaskId();
+      const simsTask = newTaskId();
       const trashTask = newTaskId();
       const orphansTask = newTaskId();
       const toolsTask = newTaskId();
@@ -106,7 +121,7 @@ export const clean: View = {
         ledger: "clean",
         trashOverride: cleanTrashMode(),
         onCancel: () => {
-          for (const id of [purgeTask, installerTask, dockerTask, trashTask, orphansTask, toolsTask])
+          for (const id of [purgeTask, installerTask, dockerTask, simsTask, trashTask, orphansTask, toolsTask])
             void cancelTask(id);
         },
         subtitleHtml: () => {
@@ -176,6 +191,14 @@ export const clean: View = {
               t("prev.docker.age", { d: img.age_days }),
             )}</span>`;
           }
+          if (section === "simulators") {
+            const sim = sims.find((s) => s.udid === item.id);
+            if (!sim) return "";
+            const parts = [sim.runtime];
+            if (sim.age_days !== null) parts.push(t("prev.sim.age", { d: sim.age_days }));
+            if (!sim.is_available) parts.push(t("prev.sim.unavailable"));
+            return `<span class="badge ${sim.is_available ? "ok" : "warn"}">${esc(parts.join(" · "))}</span>`;
+          }
           if (section === "ios_backups") {
             const b = backups.find((x) => x.path === item.path);
             if (!b) return "";
@@ -204,6 +227,7 @@ export const clean: View = {
           let kb = 0;
           let recent = 0;
           let dockerCount = 0;
+          let simCount = 0;
           let trashCount = 0;
           let orphanCount = 0;
           let backupCount = 0;
@@ -211,6 +235,10 @@ export const clean: View = {
           for (const item of selectedItems) {
             if (imageOf(images, item.id) || item.id === "build-cache") {
               dockerCount += 1;
+              continue;
+            }
+            if (sims.some((s) => s.udid === item.id)) {
+              simCount += 1;
               continue;
             }
             const tool = toolOf(tools, item.id);
@@ -242,6 +270,7 @@ export const clean: View = {
               t("flow.confirm.projects", { n: roots.size, size: humanKb(kb), m: recent, days: idleDays }),
             );
           if (dockerCount > 0) notes.push(t("flow.confirm.docker", { n: dockerCount }));
+          if (simCount > 0) notes.push(t("flow.confirm.simulators", { n: simCount }));
           if (trashCount > 0) notes.push(t("flow.confirm.trash", { n: trashCount }));
           if (backupCount > 0) notes.push(t("flow.confirm.backups", { n: backupCount }));
           if (snapshotCount > 0) notes.push(t("flow.confirm.snapshots", { n: snapshotCount }));
@@ -250,6 +279,7 @@ export const clean: View = {
         },
         execute: (job, onItem) => {
           if (job.planId === dockerPlanId) return executeDocker(job.planId, job.selection, onItem);
+          if (job.planId === simsPlanId) return executeSimulators(job.planId, job.selection, onItem);
           if (job.planId === toolsPlanId) return executeTools(job.planId, job.selection, onItem);
           return undefined;
         },
@@ -259,11 +289,12 @@ export const clean: View = {
           // failure (including cancel) aborts the flow; any secondary failure
           // (docker not running is the common case) degrades to a preview
           // without that section.
-          const [c, p, i, d, tr, o, tl] = await Promise.allSettled([
+          const [c, p, i, d, sm, tr, o, tl] = await Promise.allSettled([
             planClean(taskId, (e) => onLabel(`${e.label} (${e.count})`)),
             planPurge(purgeTask, (e) => onLabel(shorten(e.label))),
             planInstaller(installerTask),
             planDocker(dockerTask),
+            planSimulators(simsTask),
             planTrash(trashTask),
             planOrphans(orphansTask),
             planTools(toolsTask),
@@ -281,6 +312,11 @@ export const clean: View = {
             images = d.value.images;
             dockerPlanId = d.value.summary.plan_id;
             summaries.push(d.value.summary);
+          }
+          if (sm.status === "fulfilled" && sm.value.summary.count > 0) {
+            sims = sm.value.devices;
+            simsPlanId = sm.value.summary.plan_id;
+            summaries.push(sm.value.summary);
           }
           if (tr.status === "fulfilled" && tr.value.count > 0) {
             for (const s of tr.value.sections) for (const it of s.items) trashPaths.add(it.path);
@@ -356,7 +392,7 @@ function imageOf(images: DockerImage[], id: string): DockerImage | undefined {
   return images.find((img) => img.id === id);
 }
 
-/** Tool row for a plan item id ("snap:…", "sim:…", "brew:cleanup"). */
+/** Tool row for a plan item id ("snap:…", "brew:cleanup"). */
 function toolOf(tools: ToolItem[], id: string): ToolItem | undefined {
   return tools.find((tool) => tool.id === id);
 }

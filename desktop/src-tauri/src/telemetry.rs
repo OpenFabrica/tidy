@@ -101,6 +101,7 @@ fn scan_of(value: &str) -> &'static str {
             "uninstall",
             "purge",
             "docker",
+            "simulators",
             "analyze",
             "installer",
             "updates",

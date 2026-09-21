@@ -249,6 +249,8 @@ pub fn run() {
             commands::plan_purge,
             commands::plan_docker,
             commands::execute_docker,
+            commands::plan_simulators,
+            commands::execute_simulators,
             commands::plan_installer,
             commands::plan_trash,
             commands::plan_orphans,

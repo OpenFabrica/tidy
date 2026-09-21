@@ -7,7 +7,7 @@ use mole_core::plan::DeletionPlan;
 use mole_ops::scanutil::CancelFlag;
 use mole_ops::uninstall::AppInfo;
 use mole_ops::updates::{AppUpdate, UpdateCatalog};
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -345,7 +345,14 @@ struct StoredDocker {
     created: Instant,
 }
 
-/// Last tool scan (snapshots / simulators / brew): item id → action.
+/// Last simulator scan: the UDIDs it offered. Same boundary rule as Docker.
+struct StoredSimulators {
+    plan_id: String,
+    udids: HashSet<String>,
+    created: Instant,
+}
+
+/// Last tool scan (snapshots / brew): item id → action.
 struct StoredTools {
     plan_id: String,
     targets: HashMap<String, mole_ops::tools::ToolTarget>,
@@ -375,6 +382,8 @@ pub struct AppState {
     pub analyze_cache: Arc<mole_ops::analyze::SizeCache>,
     /// Latest Docker scan; execute_docker accepts ids from this map only.
     docker: Mutex<Option<StoredDocker>>,
+    /// Latest simulator scan; execute_simulators accepts UDIDs from it only.
+    simulators: Mutex<Option<StoredSimulators>>,
     /// Latest tool scan; execute_tools accepts ids from this map only.
     tools: Mutex<Option<StoredTools>>,
     /// Single-flight update mutation guard.
@@ -439,6 +448,39 @@ impl AppState {
         }
     }
 
+    /// Store the simulator scan and hand back its plan id.
+    pub fn store_simulators(&self, udids: HashSet<String>) -> String {
+        static COUNTER: AtomicU64 = AtomicU64::new(1);
+        let plan_id = format!(
+            "plan-simulators-{}",
+            COUNTER.fetch_add(1, Ordering::Relaxed)
+        );
+        *self.simulators.lock().unwrap() = Some(StoredSimulators {
+            plan_id: plan_id.clone(),
+            udids,
+            created: Instant::now(),
+        });
+        plan_id
+    }
+
+    /// Check a UDID against the stored simulator scan (plan id must match and
+    /// the scan must be fresh), or explain why not.
+    pub fn simulator_target(&self, plan_id: &str, udid: &str) -> Result<(), &'static str> {
+        let sims = self.simulators.lock().unwrap();
+        match sims.as_ref() {
+            None => Err("plan_not_found"),
+            Some(s) if s.plan_id != plan_id => Err("plan_not_found"),
+            Some(s) if s.created.elapsed() > PLAN_TTL => Err("plan_expired"),
+            Some(s) if s.udids.contains(udid) => Ok(()),
+            Some(_) => Err("selection_mismatch"),
+        }
+    }
+
+    /// Drop the simulator scan after execution: the device set changed.
+    pub fn clear_simulators(&self) {
+        *self.simulators.lock().unwrap() = None;
+    }
+
     /// Store the tool scan and hand back its plan id.
     pub fn store_tools(&self, targets: HashMap<String, mole_ops::tools::ToolTarget>) -> String {
         static COUNTER: AtomicU64 = AtomicU64::new(1);
@@ -467,7 +509,7 @@ impl AppState {
         }
     }
 
-    /// Drop the tool scan after execution: snapshots and simulators no
+    /// Drop the tool scan after execution: snapshots and brew caches no
     /// longer match what the preview showed.
     pub fn clear_tools(&self) {
         *self.tools.lock().unwrap() = None;
@@ -694,6 +736,43 @@ mod analyze_state_tests {
 
         assert!(cancel.load(Ordering::Relaxed));
         state.clear_task("not-registered-yet");
+    }
+}
+
+#[cfg(test)]
+mod simulator_state_tests {
+    use super::*;
+
+    #[test]
+    fn simulator_execution_is_contained_by_the_stored_plan() {
+        let state = AppState::default();
+        const UDID: &str = "A1B2C3D4-E5F6-7890-ABCD-EF0123456789";
+        assert_eq!(
+            state.simulator_target("plan-x", UDID),
+            Err("plan_not_found")
+        );
+
+        let plan_id = state.store_simulators(HashSet::from([UDID.to_string()]));
+        assert_eq!(state.simulator_target(&plan_id, UDID), Ok(()));
+        assert_eq!(
+            state.simulator_target(&plan_id, "11111111-2222-3333-4444-555555555555"),
+            Err("selection_mismatch")
+        );
+        assert_eq!(
+            state.simulator_target("plan-x", UDID),
+            Err("plan_not_found")
+        );
+
+        // A newer scan supersedes the old plan id.
+        let newer = state.store_simulators(HashSet::from([UDID.to_string()]));
+        assert_eq!(
+            state.simulator_target(&plan_id, UDID),
+            Err("plan_not_found")
+        );
+        assert_eq!(state.simulator_target(&newer, UDID), Ok(()));
+
+        state.clear_simulators();
+        assert_eq!(state.simulator_target(&newer, UDID), Err("plan_not_found"));
     }
 }
 
