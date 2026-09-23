@@ -518,7 +518,16 @@ export function runExecution(
           result: "failed",
         });
       }
-      line.textContent = String(e?.message ?? e);
+      // 执行失败时替换整个视图，避免停留在无出口的"处理中"状态
+      body.innerHTML = `
+        <div class="hero">
+          <span class="kicker">${t("flow.failed")}</span>
+          <p class="sub">${esc(String(e?.message ?? e))}</p>
+          <button class="frame-cta" id="again">${t("clean.again")} →</button>
+        </div>`;
+      body.querySelector("#again")!.addEventListener("click", () => {
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+      });
     });
 }
 
