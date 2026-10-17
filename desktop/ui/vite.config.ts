@@ -2,7 +2,9 @@
 // (the Makefile picks a free one and hands the same value to `tauri dev`
 // as devUrl), falling back to 5173; strictPort keeps both sides in agreement
 // instead of letting Vite silently drift to 5174. No auto-open: Tauri owns
-// the window.
+// the window. Two pages: the main window (index.html) and the menu-bar tray
+// panel (panel.html).
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 
 /** 开发端口：Makefile 传入的 TAURI_DEV_PORT，缺省 5173。 */
@@ -16,5 +18,11 @@ export default defineConfig({
   },
   build: {
     target: "safari15",
+    rollupOptions: {
+      input: {
+        main: fileURLToPath(new URL("index.html", import.meta.url)),
+        panel: fileURLToPath(new URL("panel.html", import.meta.url)),
+      },
+    },
   },
 });

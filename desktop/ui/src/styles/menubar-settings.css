@@ -1,0 +1,576 @@
+/* Menu-bar settings: the 菜单栏 tab's master row and the stacked
+   "菜单栏设置" / "<metric> 颜色" dialogs. Newspaper skin: paper sheet with an
+   ink rule frame, serif heads, mono figures, rust for everything actionable.
+   Tone swatches preview the status-item colors (drawn by AppKit, so they are
+   brighter than the print palette on purpose). */
+
+:root {
+  --mb-tone-normal: var(--ink);
+  --mb-tone-green: #3c8a4c;
+  --mb-tone-yellow: #d1a514;
+  --mb-tone-blue: #3a72b0;
+  --mb-tone-warning: #e8871a;
+  --mb-tone-critical: #c4261c;
+}
+
+/* --- settings tab ---------------------------------------------------------- */
+
+.mb-section:focus {
+  outline: none;
+}
+
+.mb-section:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 6px;
+}
+
+.mb-section .set-inline {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.mb-action {
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+
+.mb-feedback {
+  margin: 0;
+  padding: 8px 0;
+  border-bottom: 1px dotted var(--rule-soft);
+  font-size: 11.5px;
+  color: var(--rust);
+}
+
+.mb-feedback button {
+  margin-left: 6px;
+  font-size: 11.5px;
+}
+
+/* --- dialog shell ---------------------------------------------------------- */
+
+.mbset-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(38, 36, 31, 0.36);
+  animation: mbset-fade var(--motion-base) var(--ease-standard);
+}
+
+/* The rule editor stacks over the configure dialog. */
+.mbset-backdrop.mbset-stack {
+  z-index: 61;
+  background: rgba(38, 36, 31, 0.22);
+}
+
+.mbset-dialog {
+  display: flex;
+  flex-direction: column;
+  width: 540px;
+  max-width: 100%;
+  max-height: 100%;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  box-shadow: 0 18px 40px rgba(38, 36, 31, 0.22);
+}
+
+.mbset-dialog.mbrule {
+  width: 600px;
+}
+
+.mbset-head {
+  flex: none;
+  padding: 20px 26px 12px;
+  border-bottom: 2px solid var(--rule-strong);
+}
+
+.mbset-head h2 {
+  margin: 0;
+  font: 600 21px/1.25 var(--font-serif);
+}
+
+.mbset-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px 26px 14px;
+  scrollbar-gutter: stable;
+}
+
+.mbset-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 26px 16px;
+  border-top: 1px solid var(--rule-strong);
+}
+
+.mbset-status {
+  flex: 1;
+  min-width: 0;
+  font-size: 11.5px;
+}
+
+.mbset-err {
+  color: var(--rust);
+}
+
+button.mbset-primary {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+  min-width: 72px;
+}
+
+button.mbset-primary:hover:not(:disabled) {
+  background: var(--rust);
+  border-color: var(--rust);
+  color: var(--paper);
+}
+
+button.mbset-primary:disabled {
+  background: var(--wash-1);
+  border-color: var(--rule-soft);
+  color: var(--ink-ghost);
+}
+
+@keyframes mbset-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mbset-backdrop {
+    animation: none;
+  }
+}
+
+/* --- configure dialog ------------------------------------------------------ */
+
+.mbset-group {
+  padding-top: 14px;
+}
+
+.mbset-group + .mbset-group {
+  margin-top: 6px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+/* Section kickers are set like newspaper department heads. */
+.mbset-kicker {
+  margin: 0 0 4px;
+  font: 500 10.5px/1.4 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.mbset-opt {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 9px 0;
+  border-bottom: 1px dotted var(--rule-soft);
+}
+
+.mbset-opt:last-child {
+  border-bottom: none;
+}
+
+.mbset-items-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.mbset-items-head .muted {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.mbset-list {
+  border-top: 1px solid var(--rule-edge);
+}
+
+.mbset-item {
+  border-bottom: 1px dotted var(--rule-soft);
+  background: var(--paper);
+}
+
+.mbset-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+}
+
+.mbset-grip {
+  flex: none;
+  width: 22px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  fill: var(--ink-ghost);
+  cursor: grab;
+  touch-action: none;
+}
+
+.mbset-grip:hover:not(:disabled),
+.mbset-grip:focus-visible {
+  fill: var(--rust);
+}
+
+.mbset-dragging,
+.mbset-dragging * {
+  cursor: grabbing !important;
+}
+
+.mbset-logo-mark {
+  flex: none;
+  width: 22px;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.mbset-logo-mark img {
+  width: 16px;
+  height: 16px;
+  opacity: 0.85;
+}
+
+.mbset-check {
+  flex: 1;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.mbset-check input[type="checkbox"] {
+  top: 0;
+}
+
+/* A locked last selection stays visibly checked, just quieter. */
+.mbset-dialog input[type="checkbox"]:checked:disabled {
+  background: var(--rust);
+  border-color: var(--rust);
+  opacity: 0.45;
+}
+
+button.mbset-color {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 9px;
+  border-color: transparent;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+button.mbset-color:hover:not(:disabled) {
+  border-color: var(--rule-edge);
+}
+
+.mbset-dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.mbset-dot,
+.mbrule-tone i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--mb-tone-normal);
+}
+
+[data-tone="green"] {
+  --tone: var(--mb-tone-green);
+}
+[data-tone="yellow"] {
+  --tone: var(--mb-tone-yellow);
+}
+[data-tone="blue"] {
+  --tone: var(--mb-tone-blue);
+}
+[data-tone="warning"] {
+  --tone: var(--mb-tone-warning);
+}
+[data-tone="critical"] {
+  --tone: var(--mb-tone-critical);
+}
+.mbset-dot[data-tone],
+.mbrule-tone i[data-tone] {
+  background: var(--tone, var(--mb-tone-normal));
+}
+
+/* Fan mode sits under the fan row, indented to the label column. */
+.mbset-sub {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0 0 10px 41px;
+}
+
+.mbset-seg button {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+}
+
+.mbset-fans {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  font-size: 12px;
+}
+
+.mbset-fan {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.mbset-fan input[type="checkbox"] {
+  top: 0;
+}
+
+.mbset-rpm {
+  font: 11.5px var(--font-mono);
+  color: var(--ink-faint);
+}
+
+/* Network interface picker under the network row. */
+.mbset-net-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.mbset-net select {
+  max-width: 300px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--rule-edge);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  color: var(--ink);
+  font: 12px var(--font-ui);
+}
+
+.mbset-net select:disabled {
+  opacity: 0.55;
+}
+
+.mbset-fan-hint,
+.mbset-fan-none {
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+/* Drag: the real row becomes a hatched slot; a lifted copy follows the pointer. */
+.mbset-placeholder {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--wash-1) 0 4px,
+    var(--paper) 4px 8px
+  );
+}
+
+.mbset-placeholder > * {
+  visibility: hidden;
+}
+
+.mbset-preview {
+  position: fixed;
+  z-index: 70;
+  pointer-events: none;
+  border: 1px solid var(--rule-strong);
+  box-shadow: 0 10px 22px rgba(38, 36, 31, 0.22);
+  padding-right: 6px;
+}
+
+.mbset-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- color rule editor ----------------------------------------------------- */
+
+.mbrule-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.mbrule-off {
+  color: var(--warn);
+}
+
+.mbrule-empty {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+  background: var(--wash-1);
+}
+
+.mbrule-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.mbrule-row {
+  padding: 8px 12px 10px;
+  border: 1px solid var(--rule-soft);
+  border-left: 3px solid var(--rule-edge);
+}
+
+.mbrule-row:focus-within {
+  border-left-color: var(--rust);
+}
+
+.mbrule-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.mbrule-index {
+  font: 500 10.5px var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.mbrule-remove {
+  font-size: 11.5px;
+}
+
+.mbrule-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.mbrule-cond {
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule-edge);
+  border-radius: var(--radius-sm);
+  padding: 3px 6px;
+  min-width: 92px;
+}
+
+.mbrule-cond:focus {
+  outline: none;
+  border-color: var(--rust);
+}
+
+input.mbrule-num {
+  width: 64px;
+  text-align: right;
+  font-family: var(--font-mono);
+}
+
+.mbrule-to,
+.mbrule-unit {
+  color: var(--ink-soft);
+}
+
+.mbrule-unit {
+  font: 11.5px var(--font-mono);
+}
+
+.mbrule-tones {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+}
+
+button.mbrule-tone {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+}
+
+.mbrule-tone i {
+  width: 12px;
+  height: 12px;
+}
+
+.mbrule-tone[data-tone="normal"] i {
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1.5px var(--ink);
+}
+
+button.mbrule-tone.on {
+  border-color: var(--ink);
+}
+
+button.mbrule-tone:hover:not(:disabled):not(.on) {
+  border-color: var(--rule-edge);
+}
+
+.mbrule-error {
+  min-height: 1.6em;
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--rust);
+}
+
+.mbrule-addline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11.5px;
+}
+
+/* Footer text actions sit on the buttons' centre line. */
+.mbset-foot .link-quiet {
+  align-self: center;
+  padding: 5px 0;
+  line-height: 1.4;
+}
+
+/* Thresholds are typed, not spun: the steppers only add noise. */
+input.mbrule-num::-webkit-inner-spin-button,
+input.mbrule-num::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}

@@ -37,5 +37,16 @@ tauri-plugin-dialog = "2"
 tauri-plugin-updater = "2"
 semver = "1"
 
+# Native status-item drawing, click routing and panel window tweaks. Same
+# versions tray-icon/tao already pull in, so no new crates are compiled.
+[target.'cfg(target_os = "macos")'.dependencies]
+# Must stay the tray-icon minor that tauri uses: `with_inner_tray_icon` hands
+# out this crate's TrayIcon type.
+tray-icon = { version = "0.24", default-features = false }
+objc2 = "0.6"
+block2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSString", "NSData", "NSDictionary", "NSGeometry", "NSArray", "NSLocale"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "block2", "NSAppearance", "NSAttributedString", "NSButton", "NSCell", "NSColor", "NSControl", "NSEvent", "NSFont", "NSGraphics", "NSImage", "NSResponder", "NSStatusBarButton", "NSStatusItem", "NSStringDrawing", "NSView", "NSWindow", "NSAccessibilityProtocols"] }
+
 [dev-dependencies]
 tempfile.workspace = true

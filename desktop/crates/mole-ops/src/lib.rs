@@ -14,6 +14,7 @@ pub mod installer;
 pub mod optimize;
 pub mod orphans;
 pub mod purge;
+pub mod resident;
 pub mod scanutil;
 pub mod simulators;
 pub mod smc;

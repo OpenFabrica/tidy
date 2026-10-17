@@ -1,0 +1,11 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "tray-panel",
+  "description": "Menu-bar panel: core events/window basics; app commands (resident_*, app_icon, reveal_in_finder, autostart_*) are app-defined and allowed by default.",
+  "windows": [
+    "tray-panel"
+  ],
+  "permissions": [
+    "core:default"
+  ]
+}

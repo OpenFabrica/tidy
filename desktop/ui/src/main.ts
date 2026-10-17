@@ -1,11 +1,10 @@
-// App boot: register themed views, start the pill-nav router, sync
-// backend-affecting prefs, and listen for tray-menu navigation events.
+// App boot: register themed views, start the pill-nav router, and listen
+// for tray-menu navigation events.
 
 import { listen } from "@tauri-apps/api/event";
 import { showTelemetryNotice, showUpdateBanner } from "./banner";
 import { mountFdaHelper } from "./fda-helper";
 import { appSettings, updateCheck } from "./ipc";
-import { applyBackendPrefs } from "./prefs";
 import { register, start } from "./router";
 import { analyze } from "./views/analyze";
 import { clean } from "./views/clean";
@@ -34,7 +33,6 @@ register("#/status", "nav.status", "status", dashboard);
 register("#/settings", "nav.settings", "", settings, true, true);
 
 start();
-applyBackendPrefs();
 void listen<string>("mole-nav", (event) => {
   location.hash = event.payload;
 });

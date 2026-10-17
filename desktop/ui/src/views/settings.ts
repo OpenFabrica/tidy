@@ -13,6 +13,8 @@ import {
   fdaHelperHide,
   openFdaSettings,
   purgePathsGet,
+  residentGetPrefs,
+  residentOpenPanel,
   setTelemetryEnabled,
   setUpdateAutocheck,
   touchidStatus,
@@ -21,16 +23,27 @@ import {
   whitelistSet,
 } from "../ipc";
 import { showUpdateBanner } from "../banner";
-import type { AppSettings } from "../types";
+import type { AppSettings, ResidentPrefs } from "../types";
+import {
+  closeMenubarDialogs,
+  createPrefsStore,
+  openConfigureDialog,
+  type PrefsStore,
+} from "./menubar-settings";
 import { PRODUCT_NAME } from "../brand";
 import { esc } from "../format";
 import { lang, langMode, setLang, t } from "../i18n";
 import { listen } from "@tauri-apps/api/event";
-import { applyBackendPrefs, dockerIdleMonths, pref, purgeIdleDays, setPref } from "../prefs";
+import { dockerIdleMonths, pref, purgeIdleDays, setPref } from "../prefs";
 import type { View } from "../router";
 
 type Tab = "general" | "tools" | "menubar";
 let tab: Tab = "general";
+
+/** Menu-bar prefs for the 菜单栏 tab; null when the backend could not load them. */
+let resident: PrefsStore | null = null;
+/** "系统状态" could not open the panel. */
+let panelFailed = false;
 
 /** One settings row: title/desc left, control HTML right. */
 function row(title: string, desc: string, control: string): string {
@@ -65,20 +78,31 @@ function toggle(id: string, on: boolean): string {
 
 export const settings: View = {
   unmount() {
+    closeMenubarDialogs();
     stopFdaPoll();
     unlistenHelper?.();
     unlistenHelper = undefined;
   },
   async mount(container) {
-    const [meta, fda, autostart, wl, purgePaths, touchid, backend] = await Promise.all([
-      appMeta(),
-      fdaStatus(),
-      autostartGet(),
-      whitelistGet(),
-      purgePathsGet(),
-      touchidStatus(),
-      appSettings(),
-    ]);
+    // `#/settings?section=menubar` (tray menu / panel footer) lands on the
+    // 菜单栏 tab with that section scrolled into view and focused.
+    const deepLink = new URLSearchParams(location.hash.split("?")[1] ?? "").get("section");
+    if (deepLink === "menubar") tab = "menubar";
+    const [meta, fda, autostartOn, wl, purgePaths, touchid, backend, residentPrefs] =
+      await Promise.all([
+        appMeta(),
+        fdaStatus(),
+        autostartGet(),
+        whitelistGet(),
+        purgePathsGet(),
+        touchidStatus(),
+        appSettings(),
+        residentGetPrefs().catch((): ResidentPrefs | null => null),
+      ]);
+    // Rows in two tabs show launch-at-login; both read this live value.
+    autostart = autostartOn;
+    panelFailed = false;
+    resident = residentPrefs ? createPrefsStore(residentPrefs) : null;
 
     const draw = () => {
       const tabs: [Tab, string][] = [
@@ -126,9 +150,23 @@ export const settings: View = {
       });
       wire(container, draw);
     };
+    resident?.subscribe(() => {
+      if (tab === "menubar" && container.isConnected) draw();
+    });
     draw();
+    if (deepLink === "menubar") {
+      const section = container.querySelector<HTMLElement>("#set-menubar");
+      section?.scrollIntoView({ block: "start" });
+      section?.focus({ preventScroll: true });
+      // Drop the query without a hashchange so the same deep link fires
+      // again next time (an unchanged hash would not re-navigate).
+      history.replaceState(null, "", "#/settings");
+    }
   },
 };
+
+/** Launch-at-login state shared by the 通用 and 菜单栏 rows. */
+let autostart = false;
 
 /** 通用 tab. */
 function generalTab(fda: boolean, autostart: boolean, backend: AppSettings): string {
@@ -225,16 +263,39 @@ function toolsTab(patterns: string[], purgePaths: string[] | null, touchidOn: bo
   ].join("");
 }
 
-/** 菜单栏 tab. */
+/** 菜单栏 tab: the master switch with its panel/configure actions, then
+ * launch-at-login. resident.json is the only source of truth for the switch:
+ * when it cannot be read the switch stays disabled behind a reload link. */
 function menubarTab(): string {
-  return [
-    row(t("set.tray"), t("set.tray.desc"), toggle("tg-tray", pref("tray-visible", "1") === "1")),
-    row(
-      t("set.keeptray"),
-      t("set.keeptray.desc"),
-      toggle("tg-keeptray", pref("keep-in-tray", "0") === "1"),
-    ),
-  ].join("");
+  const store = resident;
+  const enabled = store?.prefs.enabled ?? false;
+  const busy = store ? store.saving : true;
+  const actions =
+    store && enabled
+      ? `<button class="link-quiet mb-action" id="mb-open-panel" ${busy ? "disabled" : ""}>${t("mb.status")}</button>
+         <button class="link-quiet mb-action" id="mb-configure" aria-haspopup="dialog" ${busy ? "disabled" : ""}>${t("mb.configure")}</button>`
+      : "";
+  const feedback = !store || store.error
+    ? `<div class="set-note mb-feedback" role="status">${t(store ? "mb.saveFailed" : "mb.loadFailed")}
+         <button class="link-quiet" id="mb-reload">${t("mb.reload")}</button></div>`
+    : panelFailed
+      ? `<div class="set-note mb-feedback" role="alert">${t("mb.panelFailed")}</div>`
+      : "";
+  return `<div id="set-menubar" class="mb-section" tabindex="-1" role="region" aria-label="${esc(t("mb.section"))}">
+    <div class="set-row">
+      <div class="set-text">
+        <div class="set-title" id="mb-enabled-label">${t("mb.enabled")}</div>
+        <div class="set-desc muted" id="mb-enabled-desc">${t("mb.enabled.desc")}</div>
+      </div>
+      <div class="set-control set-inline">
+        ${actions}
+        <button class="toggle ${enabled ? "on" : ""}" id="tg-resident" role="switch" aria-checked="${enabled}"
+          aria-labelledby="mb-enabled-label" aria-describedby="mb-enabled-desc" ${busy ? "disabled" : ""}></button>
+      </div>
+    </div>
+    ${feedback}
+    ${row(t("mb.autostart"), t("mb.autostart.desc"), toggle("tg-autostart-mb", autostart))}
+  </div>`;
 }
 
 /** Poll timer started by the FDA button; cleared on grant and on unmount. */
@@ -297,7 +358,14 @@ function wire(container: HTMLElement, redraw: () => void): void {
       onChange(on);
     });
   };
-  wireToggle("tg-autostart", (on) => void autostartSet(on));
+  wireToggle("tg-autostart", (on) => {
+    autostart = on;
+    void autostartSet(on);
+  });
+  wireToggle("tg-autostart-mb", (on) => {
+    autostart = on;
+    void autostartSet(on);
+  });
   wireToggle("tg-autocheck", (on) => void setUpdateAutocheck(on));
   wireToggle("tg-telemetry", (on) => void setTelemetryEnabled(on));
 
@@ -317,13 +385,34 @@ function wire(container: HTMLElement, redraw: () => void): void {
       status.textContent = t("set.selfupdate.failed");
     }
   });
-  wireToggle("tg-tray", (on) => {
-    setPref("tray-visible", on ? "1" : "0");
-    applyBackendPrefs();
+  // Master switch: persisted through resident prefs (disabled until loaded).
+  container.querySelector("#tg-resident")?.addEventListener("click", () => {
+    const store = resident;
+    if (!store) return;
+    void store.save({ ...store.prefs, enabled: !store.prefs.enabled });
+    redraw();
   });
-  wireToggle("tg-keeptray", (on) => {
-    setPref("keep-in-tray", on ? "1" : "0");
-    applyBackendPrefs();
+  container.querySelector("#mb-configure")?.addEventListener("click", (ev) => {
+    if (resident) openConfigureDialog(resident, ev.currentTarget as HTMLElement);
+  });
+  container.querySelector("#mb-open-panel")?.addEventListener("click", () => {
+    panelFailed = false;
+    void residentOpenPanel().catch(() => {
+      panelFailed = true;
+      redraw();
+    });
+  });
+  container.querySelector("#mb-reload")?.addEventListener("click", async () => {
+    const fresh = await residentGetPrefs().catch(() => null);
+    if (fresh && resident) {
+      resident.prefs = fresh;
+      resident.error = false;
+    } else if (fresh) {
+      // Prefs failed at mount: build the store now so the switch comes alive.
+      resident = createPrefsStore(fresh);
+      resident.subscribe(() => container.isConnected && redraw());
+    }
+    redraw();
   });
 
   // Threshold inputs save on every change; invalid values fall back to the

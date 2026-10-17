@@ -74,10 +74,12 @@ function renderNav(activeHash: string): void {
     <div class="mast-rules"></div>`;
 }
 
-/** Navigate to the current location.hash (first route on unknown). */
+/** Navigate to the current location.hash (first route on unknown). A
+ * `?query` suffix (e.g. `#/settings?section=menubar`) is left for the view
+ * to read and ignored when matching the route. */
 function navigate(): void {
   const container = document.getElementById("view")!;
-  const hash = location.hash || routes[0].hash;
+  const hash = location.hash.split("?")[0] || routes[0].hash;
   const route = routes.find((r) => r.hash === hash) ?? routes[0];
   current?.unmount?.();
   container.innerHTML = "";

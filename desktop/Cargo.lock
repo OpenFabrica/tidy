@@ -2006,6 +2006,7 @@ name = "mole-ops"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "core-foundation 0.10.1",
  "libc",
  "mole-core",
  "mole-macos",
@@ -3969,12 +3970,16 @@ name = "tidy"
 version = "0.1.2"
 dependencies = [
  "base64 0.22.1",
+ "block2",
  "core-foundation 0.10.1",
  "core-graphics 0.24.0",
  "mole-core",
  "mole-macos",
  "mole-ops",
  "mole-telemetry",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
  "semver",
  "serde",
  "serde_json",
@@ -3984,6 +3989,7 @@ dependencies = [
  "tauri-plugin-drag",
  "tauri-plugin-updater",
  "tempfile",
+ "tray-icon",
 ]
 
 [[package]]

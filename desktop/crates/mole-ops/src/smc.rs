@@ -266,6 +266,15 @@ pub fn temperatures() -> Temperatures {
     }
 }
 
+/// One SMC key decoded as f32 (power rails, battery sensors) for the
+/// resident sampler. None when the key is absent or the SMC is unavailable.
+pub(crate) fn read_float(key: &str) -> Option<f32> {
+    let lock = connection()?;
+    let conn = *lock.lock().ok()?;
+    let (ty, bytes) = read_key(conn, key)?;
+    decode_float(ty, &bytes).filter(|v| v.is_finite())
+}
+
 /// Decode an unsigned SMC integer (ui8/ui16/ui32, big-endian).
 fn decode_uint(data_type: u32, bytes: &[u8]) -> Option<u64> {
     match (&data_type.to_be_bytes(), bytes.len()) {

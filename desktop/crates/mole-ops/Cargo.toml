@@ -18,6 +18,9 @@ chrono.workspace = true
 thiserror.workspace = true
 sysinfo = "0.36"
 plist = "1"
+# CF wrappers for the resident samplers' IOKit/CFURL reads (already in the
+# workspace via src-tauri; no new crate download).
+core-foundation = "0.10"
 
 [dev-dependencies]
 tempfile.workspace = true

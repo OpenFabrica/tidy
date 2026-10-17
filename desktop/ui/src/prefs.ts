@@ -1,13 +1,9 @@
-// Local preferences (persisted in localStorage) + boot-time sync of the
-// backend-affecting ones (tray visibility, close-to-tray).
-
-import { setKeepInTray, traySetVisible } from "./ipc";
+// Local preferences (persisted in localStorage). The menu-bar switch is not
+// one of them: resident.json (resident_get_prefs) is its only source of truth.
 
 type Keys =
   | "temp-unit"
   | "delete-mode"
-  | "tray-visible"
-  | "keep-in-tray"
   | "purge-idle-days"
   | "docker-idle-months";
 
@@ -45,9 +41,3 @@ export const purgeIdleDays = () => intPref("purge-idle-days", 30);
 
 /** Docker images unused for at least this many months are checked by default. */
 export const dockerIdleMonths = () => intPref("docker-idle-months", 6);
-
-/** Push the backend-affecting prefs at boot. */
-export function applyBackendPrefs(): void {
-  void traySetVisible(pref("tray-visible", "1") === "1");
-  void setKeepInTray(pref("keep-in-tray", "0") === "1");
-}

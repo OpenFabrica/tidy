@@ -35,7 +35,7 @@ pub struct ProcessInfo {
 }
 
 /// Outermost `.app` bundle prefix of an executable path.
-fn app_bundle_of(exe: &str) -> Option<String> {
+pub(crate) fn app_bundle_of(exe: &str) -> Option<String> {
     let idx = exe.find(".app/")?;
     Some(exe[..idx + 4].to_string())
 }

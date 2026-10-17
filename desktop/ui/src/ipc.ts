@@ -34,6 +34,13 @@ import type {
   AppSettings,
   UpdateInfo,
   DownloadProgress,
+  MainDestination,
+  PanelTab,
+  ReleasePrefs,
+  ReleaseReport,
+  ResidentPrefs,
+  ResidentReading,
+  NetInterface,
 } from "./types";
 
 /**
@@ -228,8 +235,6 @@ export const fdaDragSource = () =>
   invoke<{ app_path: string; icon_path: string }>("fda_drag_source");
 export const autostartGet = () => invoke<boolean>("autostart_get");
 export const autostartSet = (enable: boolean) => invoke<void>("autostart_set", { enable });
-export const traySetVisible = (visible: boolean) => invoke<void>("tray_set_visible", { visible });
-export const setKeepInTray = (enable: boolean) => invoke<void>("set_keep_in_tray", { enable });
 
 // --- 后端设置、自更新 -------------------------------------------------------
 
@@ -247,3 +252,31 @@ export const updateCheck = (auto: boolean) =>
 /** 下载、验签、安装，成功后应用会自行重启（这个 Promise 不会 resolve）。 */
 export const updateInstall = (onProgress: (p: DownloadProgress) => void) =>
   invoke<void>("update_install", { onProgress: channel(onProgress) });
+
+// --- 菜单栏常驻(resident) ---------------------------------------------------
+
+export const residentGetPrefs = () => invoke<ResidentPrefs>("resident_get_prefs");
+/** Normalized and persisted by the backend; returns the stored value. */
+export const residentSetPrefs = (prefs: ResidentPrefs) =>
+  invoke<ResidentPrefs>("resident_set_prefs", { prefs });
+/** Latest cached sample, no new sampling. */
+export const residentGetReading = () => invoke<ResidentReading | null>("resident_get_reading");
+export const residentRefresh = () => invoke<ResidentReading>("resident_refresh");
+export const residentSelectTab = (tab: PanelTab) => invoke<void>("resident_select_tab", { tab });
+export const residentPanelReady = () => invoke<void>("resident_panel_ready");
+export const residentHidePanel = () => invoke<void>("resident_hide_panel");
+export const residentOpenPanel = () => invoke<void>("resident_open_panel");
+export const residentOpenMain = (destination: MainDestination) =>
+  invoke<void>("resident_open_main", { destination });
+export const residentQuit = () => invoke<void>("resident_quit");
+export const residentReleaseMemory = () => invoke<ReleaseReport>("resident_release_memory");
+export const residentGetReleasePrefs = () => invoke<ReleasePrefs>("resident_get_release_prefs");
+export const residentSetReleasePrefs = (prefs: ReleasePrefs) =>
+  invoke<ReleasePrefs>("resident_set_release_prefs", { prefs });
+/** Ask a regular app to quit normally (NSRunningApplication.terminate). */
+export const residentQuitApp = (pid: number) => invoke<void>("resident_quit_app", { pid });
+export const residentResetNetwork = () => invoke<void>("resident_reset_network");
+/** Main app already knows of a newer version (cached; no network). */
+export const residentUpdateAvailable = () => invoke<boolean>("resident_update_available");
+/** Network services for the interface picker (a few configd calls). */
+export const residentListInterfaces = () => invoke<NetInterface[]>("resident_list_interfaces");

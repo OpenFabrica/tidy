@@ -1636,6 +1636,55 @@ mod autostart_tests {
         assert!(autostart_plist_for(APP_IDENTIFIER).ends_with("com.zhichi.tidy.plist"));
         assert!(autostart_plist_for(LEGACY_APP_IDENTIFIER).ends_with("com.cleaner.desktop.plist"));
     }
+
+    #[test]
+    fn launch_agent_passes_background_only_when_asked() {
+        let with = autostart_plist_content("/Applications/Tidy.app/Contents/MacOS/Tidy", true);
+        assert!(with.contains("<array><string>/Applications/Tidy.app/Contents/MacOS/Tidy</string><string>--background</string></array>"));
+        let without = autostart_plist_content("/x/Tidy", false);
+        assert!(without.contains("<array><string>/x/Tidy</string></array>"));
+    }
+}
+
+/// LaunchAgent plist text for `exe`. `background` appends the resident
+/// `--background` argument (login launch starts hidden in the menu bar).
+fn autostart_plist_content(exe: &str, background: bool) -> String {
+    let background = if background {
+        format!(
+            "<string>{}</string>",
+            crate::resident::lifecycle::BACKGROUND_ARG
+        )
+    } else {
+        String::new()
+    };
+    format!(
+        r#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>Label</key><string>{APP_IDENTIFIER}</string>
+<key>ProgramArguments</key><array><string>{exe}</string>{background}</array>
+<key>RunAtLoad</key><true/>
+</dict></plist>
+"#
+    )
+}
+
+/// Upgrade a LaunchAgent written by an older Tidy (no `--background`) in
+/// place. Only an exact match of the old generated text for the running
+/// executable is rewritten, so hand-edited agents and agents that point at
+/// another copy (e.g. a dev build) are left alone.
+pub fn migrate_autostart_args() {
+    let plist = autostart_plist();
+    let Ok(current) = std::fs::read_to_string(&plist) else {
+        return;
+    };
+    let Ok(exe) = std::env::current_exe() else {
+        return;
+    };
+    let exe = exe.display().to_string();
+    if current == autostart_plist_content(&exe, false) {
+        let _ = std::fs::write(&plist, autostart_plist_content(&exe, true));
+    }
 }
 
 /// Whether the autostart LaunchAgent is installed.
@@ -1651,17 +1700,7 @@ pub fn autostart_set(enable: bool) -> Result<(), IpcError> {
     let plist = autostart_plist();
     if enable {
         let exe = std::env::current_exe().map_err(IpcError::from)?;
-        let content = format!(
-            r#"<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0"><dict>
-<key>Label</key><string>{APP_IDENTIFIER}</string>
-<key>ProgramArguments</key><array><string>{}</string></array>
-<key>RunAtLoad</key><true/>
-</dict></plist>
-"#,
-            exe.display()
-        );
+        let content = autostart_plist_content(&exe.display().to_string(), true);
         if let Some(dir) = plist.parent() {
             std::fs::create_dir_all(dir).map_err(IpcError::from)?;
         }
@@ -1678,14 +1717,20 @@ pub fn autostart_set(enable: bool) -> Result<(), IpcError> {
     }
 }
 
-/// Show/hide the menu-bar tray icon.
+/// Show/hide the menu-bar item: the resident `enabled` pref, persisted.
 #[tauri::command]
-pub fn tray_set_visible(app: tauri::AppHandle, visible: bool) -> Result<(), IpcError> {
-    if let Some(tray) = app.tray_by_id("mole-tray") {
-        tray.set_visible(visible)
-            .map_err(|e| IpcError::new("io", e.to_string()))?;
-    }
-    Ok(())
+pub async fn tray_set_visible(app: tauri::AppHandle, visible: bool) -> Result<(), IpcError> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let state = app.state::<crate::resident::Resident>();
+        let prefs = mole_ops::resident::prefs::ResidentPrefs {
+            enabled: visible,
+            ..state.prefs()
+        };
+        crate::resident::apply_prefs(&app, prefs).map(|_| ())
+    })
+    .await
+    .map_err(|e| IpcError::new("io", e.to_string()))?
+    .map_err(IpcError::from)
 }
 
 /// Toggle close-to-tray (closing the window hides it instead of quitting).

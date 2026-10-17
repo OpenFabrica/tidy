@@ -17,6 +17,11 @@ pub const KEY_AUTOCHECK: &str = "update.autocheck";
 /// 设置键：上次成功检查的 Unix 秒。
 pub const KEY_LAST_CHECK: &str = "update.last_check";
 
+/// 设置键：最近一次真实检查发现的新版本号（没有新版本时为空）。
+/// 存盘而不是只放内存：自动检查 24 小时才跑一次，重启后菜单栏面板的
+/// 「有更新」红点仍要能显示。
+pub const KEY_KNOWN_VERSION: &str = "update.known_version";
+
 /// 自动检查的最小间隔。启动即拉一次会让每天开机十次的人发十次请求，
 /// 对一个每周最多发一版的产品毫无意义。
 const CHECK_INTERVAL_SECS: u64 = 24 * 60 * 60;
@@ -86,6 +91,8 @@ pub async fn check(
         .await
         .map_err(|e| IpcError::new("update_check_failed", e.to_string()))?;
     mark_checked(home);
+    let known = found.as_ref().map_or("", |update| update.version.as_str());
+    let _ = mole_core::settings::set(home, KEY_KNOWN_VERSION, known);
     Ok(found.map(|update| UpdateInfo {
         mandatory: below_minimum(&update.current_version, &update.raw_json),
         version: update.version.clone(),
@@ -133,6 +140,24 @@ pub async fn install(app: &AppHandle, progress: Channel<DownloadProgress>) -> Re
     app.restart();
 }
 
+/// 已知有比当前运行版本更新的版本吗？只读缓存，不发网络请求。
+/// 装完新版后缓存里的版本号不再比当前新，红点自然消失。
+pub fn update_known(home: &str) -> bool {
+    mole_core::settings::get(home, KEY_KNOWN_VERSION)
+        .is_some_and(|known| newer_than(&known, env!("CARGO_PKG_VERSION")))
+}
+
+/// `known` 是否严格高于 `current`；任一版本号解析失败都当作"不是"。
+fn newer_than(known: &str, current: &str) -> bool {
+    match (
+        semver::Version::parse(known),
+        semver::Version::parse(current),
+    ) {
+        (Ok(known), Ok(current)) => known > current,
+        _ => false,
+    }
+}
+
 /// 当前版本是否低于 feed 里的 `minimum_version`。
 ///
 /// `minimum_version` 不是 Tauri 的标准字段，是我们自己加在 latest.json 里的
@@ -162,6 +187,14 @@ mod tests {
         assert!(below_minimum("0.2.9", &feed));
         assert!(!below_minimum("0.3.0", &feed));
         assert!(!below_minimum("1.0.0", &feed));
+    }
+
+    #[test]
+    fn cached_version_counts_only_when_strictly_newer() {
+        assert!(newer_than("0.2.0", "0.1.2"));
+        assert!(!newer_than("0.1.2", "0.1.2"));
+        assert!(!newer_than("", "0.1.2"));
+        assert!(!newer_than("garbage", "0.1.2"));
     }
 
     #[test]

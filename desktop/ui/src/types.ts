@@ -417,3 +417,239 @@ export type TrackRequest =
   | { kind: "updates_run"; source: string }
   | { kind: "self_update"; from: string; to: string; result: string }
   | { kind: "error_occurred"; code: string; view: string };
+
+// --- 菜单栏常驻(resident)：镜像 crates/mole-ops/src/resident -------------
+
+/** One status-item metric, in prefs::DEFAULT_ORDER order. */
+export type MetricId =
+  | "cpu"
+  | "cpu_temperature"
+  | "gpu"
+  | "gpu_temperature"
+  | "memory"
+  | "disk"
+  | "disk_temperature"
+  | "battery_temperature"
+  | "charging_power"
+  | "battery_power"
+  | "system_power"
+  | "fan_speed"
+  | "network";
+
+/** Panel tab on screen; drives which expensive samples run. */
+export type PanelTab = "overview" | "cpu" | "gpu" | "memory" | "disk" | "network";
+
+/** kern.memorystatus_vm_pressure_level as a label. */
+export type Pressure = "normal" | "warning" | "critical" | "unknown";
+
+/** A rolling one-minute series; null = gap. */
+export type Series = (number | null)[];
+/** A bidirectional series: [down/read, up/write] bytes per second. */
+export type DuplexSeries = ([number, number] | null)[];
+
+/** One CPU performance level with its real name ("Super", "Performance"). */
+export interface CoreLevel {
+  name: string;
+  count: number;
+}
+
+export interface CpuReading {
+  usage: number | null;
+  model: string;
+  core_count: number;
+  e_cores: number | null;
+  p_cores: number | null;
+  /** Every performance level, named by the system; empty on Intel. */
+  core_levels: CoreLevel[];
+  avg_1m: number | null;
+  peak_1m: number | null;
+  temp_c: number | null;
+  history: Series;
+  temp_history: Series;
+}
+
+export interface GpuReading {
+  usage: number | null;
+  name: string;
+  core_count: number | null;
+  renderer: number | null;
+  tiler: number | null;
+  memory_used_bytes: number | null;
+  avg_1m: number | null;
+  peak_1m: number | null;
+  temp_c: number | null;
+  history: Series;
+  temp_history: Series;
+  /** One-minute engine histories (60 slots). */
+  renderer_history: Series;
+  tiler_history: Series;
+}
+
+export interface MemoryReading {
+  total_bytes: number;
+  used_bytes: number;
+  free_bytes: number;
+  swap_used_bytes: number;
+  usage_percent: number | null;
+  pressure: Pressure;
+  history: Series;
+}
+
+/** SMART-derived boot-disk health; absent fields hide their row. */
+export interface DiskHealth {
+  /** "verified" | "warning" | "failing" | "unknown". */
+  status: string;
+  file_system: string | null;
+  health_percent: number | null;
+  temp_c: number | null;
+  data_read_bytes: number | null;
+  data_written_bytes: number | null;
+  power_on_hours: number | null;
+  power_cycles: number | null;
+  available_spare_percent: number | null;
+  media_errors: number | null;
+  critical_warning: number | null;
+}
+
+export interface DiskReading {
+  volume_name: string;
+  total_bytes: number;
+  available_bytes: number;
+  used_percent: number | null;
+  read_bps: number | null;
+  write_bps: number | null;
+  read_total_bytes: number | null;
+  write_total_bytes: number | null;
+  io_history: DuplexSeries;
+  temp_c: number | null;
+  health: DiskHealth | null;
+}
+
+export interface NetDetails {
+  interface: string;
+  connected: boolean;
+  mac: string | null;
+  ipv4: string[];
+  ipv6: string[];
+  wifi_standard: string | null;
+  wifi_channel: string | null;
+}
+
+export interface NetworkReading {
+  interface: string | null;
+  rx_bps: number | null;
+  tx_bps: number | null;
+  history: DuplexSeries;
+  total_rx_bytes: number;
+  total_tx_bytes: number;
+  session_rx_bytes: number;
+  session_tx_bytes: number;
+  details: NetDetails | null;
+}
+
+export interface PowerReading {
+  battery_percent: number | null;
+  charging: boolean;
+  charging_watts: number | null;
+  battery_watts: number | null;
+  system_watts: number | null;
+  battery_temp_c: number | null;
+}
+
+export interface FanReading {
+  id: number;
+  rpm: number;
+}
+
+/** One application row (processes grouped by .app bundle). */
+export interface AppUsage {
+  key: string;
+  name: string;
+  bundle_path: string | null;
+  pid: number;
+  process_count: number;
+  pids: number[];
+  executable: string | null;
+  cpu_percent: number;
+  memory_bytes: number;
+  partial: boolean;
+  quittable: boolean;
+}
+
+/** Everything the menu bar and panel show, published at most once a second. */
+export interface ResidentReading {
+  at_ms: number;
+  cpu: CpuReading;
+  gpu: GpuReading;
+  memory: MemoryReading;
+  disk: DiskReading;
+  network: NetworkReading;
+  power: PowerReading;
+  fans: FanReading[];
+  apps_cpu: AppUsage[];
+  apps_memory: AppUsage[];
+  stale: boolean;
+}
+
+/** Status-item color for a value. */
+export type Tone = "normal" | "green" | "yellow" | "blue" | "warning" | "critical";
+
+/** below (< a), range (a ≤ v < b), at_least (≥ a). */
+export type Condition = "below" | "range" | "at_least";
+
+export interface ColorRule {
+  condition: Condition;
+  a: number;
+  /** Upper bound, used by `range` only. */
+  b: number | null;
+  tone: Tone;
+}
+
+export interface MetricEntry {
+  id: MetricId;
+  enabled: boolean;
+  rules: ColorRule[];
+}
+
+export type FanDisplay = "highest" | "average" | "selected";
+
+export interface ResidentPrefs {
+  enabled: boolean;
+  show_icon: boolean;
+  compact: boolean;
+  usage_colors: boolean;
+  metrics: MetricEntry[];
+  fan_display: FanDisplay;
+  /** Max two, used by `selected`. */
+  fan_ids: number[];
+  network_interface: string | null;
+}
+
+export type ReleaseStatus = "completed" | "busy" | "unsupported" | "failed";
+
+export interface ReleaseReport {
+  status: ReleaseStatus;
+  observed_reduction_bytes: number | null;
+  reduction_percent: number | null;
+}
+
+/** Automatic memory release schedule. */
+export interface ReleasePrefs {
+  automatic: boolean;
+  /** 3, 5, 15, 30, 60 or 120. */
+  interval_minutes: number;
+  /** null = any usage; else 70 / 80 / 90. */
+  threshold_percent: number | null;
+}
+
+/** Where `resident_open_main` lands in the main window. */
+export type MainDestination = "main" | "settings" | "menubar_settings" | "clean";
+
+/** A network service the menu-bar config can pin (`resident_list_interfaces`). */
+export interface NetInterface {
+  /** BSD name, e.g. "en0" — the value stored in prefs.network_interface. */
+  name: string;
+  /** User-facing service name, e.g. "Wi-Fi". */
+  display: string;
+  active: boolean;
+}
