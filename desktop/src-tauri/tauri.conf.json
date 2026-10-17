@@ -68,7 +68,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERCRUQ3Rjg0RTVGRkEzRkMKUldUOG8vL2xoSC90Mnd5SVhnOVM1cUhQbGhiZFJOL3FERVNQenc1bU1PYTdUVVYvcEgzUzVYV1QK",
       "endpoints": [
-        "https://github.com/rambocode/tidy/releases/latest/download/latest.json"
+        "https://github.com/OpenFabrica/tidy/releases/latest/download/latest.json"
       ]
     }
   }

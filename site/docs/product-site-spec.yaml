@@ -5,7 +5,7 @@ version: 2
 
 project:
   name: Tidy
-  repository: https://github.com/rambocode/tidy
+  repository: https://github.com/OpenFabrica/tidy
   production_url: null            # UNKNOWN — site uses https://tidy.talkwork.vip as a placeholder
   framework: static-html          # zero-dependency HTML + CSS; Node only for the Blog pipeline
   primary_locale: zh
@@ -43,7 +43,7 @@ positioning:
     - 拿不准就拒绝：系统范围操作以 requires_admin 拒绝，不退回 shell 提权
   primary_cta:
     label: 在 GitHub 上查看源码
-    destination: https://github.com/rambocode/tidy
+    destination: https://github.com/OpenFabrica/tidy
   secondary_cta:
     label: 怎么自行构建
     destination: /zh/#build
@@ -172,7 +172,7 @@ content_system:
     index_route: "/{locale}/blog/"
     rss_route: "/{locale}/blog/rss.xml"
     categories: [space, apps, maintenance, safety]   # 稳定 slug，显示名按语言映射
-    default_author: { name: Tidy, url: https://github.com/rambocode/tidy }
+    default_author: { name: Tidy, url: https://github.com/OpenFabrica/tidy }
     reading_time: { cjk_chars_per_minute: 350, words_per_minute: 220 }
     allowed_iframe_hosts: []                          # 完全禁止 iframe
     code_highlight: none                              # 仅输出 language-* class

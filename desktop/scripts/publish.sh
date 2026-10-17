@@ -14,7 +14,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."   # desktop/
 
-REPO="${REPO:-rambocode/tidy}"
+REPO="${REPO:-OpenFabrica/tidy}"
 CONF="src-tauri/tauri.conf.json"
 VERSION="$(python3 -c "import json;print(json.load(open('$CONF'))['version'])")"
 TAG="v$VERSION"

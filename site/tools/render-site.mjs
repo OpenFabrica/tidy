@@ -49,8 +49,8 @@ const STRINGS = {
     otherLang: 'English',
     langNote: (t) => `English version: ${t}`,
     cta: {
-      source: { h: '想确认这些说法？源码是公开的', p: 'Tidy 的删除边界、保护名单与日志格式全部可以在仓库里直接查证。安装包已签名并通过 Apple 公证，也可以自己编译一份对照。', label: '在 GitHub 上查看源码', href: 'https://github.com/rambocode/tidy' },
-      issues: { h: '遇到看不懂的拒绝原因？', p: '贴上拒绝码和 ~/Library/Logs/mole 里对应的几行，比描述现象更容易定位。', label: '在 GitHub 提交问题', href: 'https://github.com/rambocode/tidy/issues' },
+      source: { h: '想确认这些说法？源码是公开的', p: 'Tidy 的删除边界、保护名单与日志格式全部可以在仓库里直接查证。安装包已签名并通过 Apple 公证，也可以自己编译一份对照。', label: '在 GitHub 上查看源码', href: 'https://github.com/OpenFabrica/tidy' },
+      issues: { h: '遇到看不懂的拒绝原因？', p: '贴上拒绝码和 ~/Library/Logs/mole 里对应的几行，比描述现象更容易定位。', label: '在 GitHub 提交问题', href: 'https://github.com/OpenFabrica/tidy/issues' },
     },
     categories: { space: '空间与清理', apps: '软件管理', maintenance: '系统维护', safety: '安全边界' },
     footer: { home: 'Tidy 首页', privacy: '隐私说明', terms: '使用条款', other: 'English' },
@@ -74,8 +74,8 @@ const STRINGS = {
     otherLang: '中文',
     langNote: (t) => `中文版：${t}`,
     cta: {
-      source: { h: 'Want to check these claims? The source is public', p: "Tidy's deletion boundary, protection lists, and log formats can all be verified in the repository. The installer is signed and notarized, and you can always compile your own copy to compare.", label: 'View the source on GitHub', href: 'https://github.com/rambocode/tidy' },
-      issues: { h: 'A refusal reason that makes no sense?', p: 'Paste the refusal code together with the matching lines from ~/Library/Logs/mole; that locates it far faster than a description.', label: 'Open an issue on GitHub', href: 'https://github.com/rambocode/tidy/issues' },
+      source: { h: 'Want to check these claims? The source is public', p: "Tidy's deletion boundary, protection lists, and log formats can all be verified in the repository. The installer is signed and notarized, and you can always compile your own copy to compare.", label: 'View the source on GitHub', href: 'https://github.com/OpenFabrica/tidy' },
+      issues: { h: 'A refusal reason that makes no sense?', p: 'Paste the refusal code together with the matching lines from ~/Library/Logs/mole; that locates it far faster than a description.', label: 'Open an issue on GitHub', href: 'https://github.com/OpenFabrica/tidy/issues' },
     },
     categories: { space: 'Space & cleaning', apps: 'App management', maintenance: 'Maintenance', safety: 'Safety boundary' },
     footer: { home: 'Tidy home', privacy: 'Privacy', terms: 'Terms', other: '中文' },
@@ -137,7 +137,7 @@ function header(locale, { currentBlog = false, localeTargets = null } = {}) {
       <a href="/${locale}/#trust">${s.nav.safety}</a>
       <a href="/${locale}/blog/"${currentBlog ? ' aria-current="page"' : ''}>${s.nav.blog}</a>
       <span class="lang-switch"><a href="${target('zh')}"${locale === 'zh' ? ' aria-current="true"' : ''}>中</a>/<a href="${target('en')}"${locale === 'en' ? ' aria-current="true"' : ''}>EN</a></span>
-      <a class="btn btn-primary" href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">${s.nav.cta}</a>
+      <a class="btn btn-primary" href="https://github.com/OpenFabrica/tidy/releases/latest/download/Tidy.dmg">${s.nav.cta}</a>
     </nav>
   </div>
 </header>`

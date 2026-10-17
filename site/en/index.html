@@ -36,7 +36,7 @@
   "inLanguage": ["zh-Hans", "en"],
   "isAccessibleForFree": true,
   "url": "https://tidy.talkwork.vip/en/",
-  "codeRepository": "https://github.com/rambocode/tidy",
+  "codeRepository": "https://github.com/OpenFabrica/tidy",
   "description": "Mole's open-source macOS desktop app: clean, uninstall, optimize, and analyze with a preview-before-execute contract that limits execution to the user's selected candidates."
 }
 </script>
@@ -54,7 +54,7 @@
       <a href="#faq" data-optional>FAQ</a>
       <a href="/en/blog/">Blog</a>
       <span class="lang-switch"><a href="/zh/">中</a>/<a href="/en/" aria-current="true">EN</a></span>
-      <a class="btn btn-primary" href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">Download</a>
+      <a class="btn btn-primary" href="https://github.com/OpenFabrica/tidy/releases/latest/download/Tidy.dmg">Download</a>
     </nav>
   </div>
 </header>
@@ -67,14 +67,14 @@
       <h1>See clearly. Tidy safely.</h1>
       <p class="lead">Tidy is Mole's open-source macOS desktop app. Cleaning, uninstalling, optimizing, and disk analysis all put the full candidate list in front of you first. Whatever you tick is exactly what gets removed — the architecture makes one extra file impossible.</p>
       <div class="hero-actions">
-        <a class="btn btn-primary btn-lg" href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">Download Tidy 0.1.1</a>
-        <a class="btn btn-secondary btn-lg" href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">View the source on GitHub</a>
+        <a class="btn btn-primary btn-lg" href="https://github.com/OpenFabrica/tidy/releases/latest/download/Tidy.dmg">Download Tidy 0.1.1</a>
+        <a class="btn btn-secondary btn-lg" href="https://github.com/OpenFabrica/tidy" target="_blank" rel="noopener noreferrer">View the source on GitHub</a>
       </div>
       <p class="requirements">
         <span>macOS 11+</span><span>Universal (Intel &amp; Apple silicon)</span><span>English / 中文</span><span>Version 0.1.1 · 17 MB</span>
       </p>
       <p class="notice">
-        <strong>0.1.1 is the current public release.</strong> The installer is signed with a Developer ID and notarized by Apple, so it opens without the "unidentified developer" warning. The app checks for its own updates and sends anonymous usage statistics — both can be turned off in Settings, and the <a href="/en/privacy/">privacy page</a> lists every field collected. <a href="https://github.com/rambocode/tidy/releases" target="_blank" rel="noopener noreferrer">All releases</a>
+        <strong>0.1.1 is the current public release.</strong> The installer is signed with a Developer ID and notarized by Apple, so it opens without the "unidentified developer" warning. The app checks for its own updates and sends anonymous usage statistics — both can be turned off in Settings, and the <a href="/en/privacy/">privacy page</a> lists every field collected. <a href="https://github.com/OpenFabrica/tidy/releases" target="_blank" rel="noopener noreferrer">All releases</a>
       </p>
 
       <figure class="shot shot-hero">
@@ -310,8 +310,8 @@
     <div class="wrap">
       <p class="eyebrow">Getting it</p>
       <h2>Download it, or compile your own copy</h2>
-      <p class="lead section-intro">For most people the <a href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">DMG</a> is all you need. If you would rather verify for yourself exactly what it deletes, the source lives in the <code>desktop/</code> directory of <a href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">github.com/rambocode/tidy</a>; you need Rust stable and Node ≥ 20.</p>
-      <pre><code>git clone https://github.com/rambocode/tidy.git
+      <p class="lead section-intro">For most people the <a href="https://github.com/OpenFabrica/tidy/releases/latest/download/Tidy.dmg">DMG</a> is all you need. If you would rather verify for yourself exactly what it deletes, the source lives in the <code>desktop/</code> directory of <a href="https://github.com/OpenFabrica/tidy" target="_blank" rel="noopener noreferrer">github.com/OpenFabrica/tidy</a>; you need Rust stable and Node ≥ 20.</p>
+      <pre><code>git clone https://github.com/OpenFabrica/tidy.git
 cd tidy/desktop
 
 # backend checks
@@ -333,7 +333,7 @@ cd ui &amp;&amp; npm install &amp;&amp; npx tauri dev</code></pre>
       <div class="faq" style="margin-top:28px">
         <details>
           <summary>Can I download an installer today?</summary>
-          <p>Yes. <a href="https://github.com/rambocode/tidy/releases/latest/download/Tidy.dmg">Download the 0.1.1 DMG</a> (17 MB, Universal, runs on both Intel and Apple silicon, needs macOS 11 or later). It is signed with a Developer ID and notarized by Apple, so it opens without a Gatekeeper prompt. The app also checks for its own updates.</p>
+          <p>Yes. <a href="https://github.com/OpenFabrica/tidy/releases/latest/download/Tidy.dmg">Download the 0.1.1 DMG</a> (17 MB, Universal, runs on both Intel and Apple silicon, needs macOS 11 or later). It is signed with a Developer ID and notarized by Apple, so it opens without a Gatekeeper prompt. The app also checks for its own updates.</p>
         </details>
         <details>
           <summary>Can I get something back if I delete the wrong thing?</summary>
@@ -365,7 +365,7 @@ cd ui &amp;&amp; npm install &amp;&amp; npx tauri dev</code></pre>
       <h2>If a refusal reason does not make sense, open an issue</h2>
       <div class="feedback">
         <p>The project has only just gone public, so there are no public user reviews — which is why this page carries no testimonials. The one feedback channel today is GitHub Issues. Paste the refusal code you saw (<code>probe_failed</code>, <code>requires_admin</code>, and so on) together with the matching lines from <code>~/Library/Logs/mole</code>; that locates a problem far faster than a description of the symptom.</p>
-        <p style="margin-bottom:0"><a class="btn btn-secondary" href="https://github.com/rambocode/tidy/issues" target="_blank" rel="noopener noreferrer">Open an issue on GitHub</a></p>
+        <p style="margin-bottom:0"><a class="btn btn-secondary" href="https://github.com/OpenFabrica/tidy/issues" target="_blank" rel="noopener noreferrer">Open an issue on GitHub</a></p>
       </div>
     </div>
   </section>
@@ -375,7 +375,7 @@ cd ui &amp;&amp; npm install &amp;&amp; npx tauri dev</code></pre>
       <h2>See it first, then decide what to remove</h2>
       <p class="lead">Source, safety boundary, and log formats are all public and checkable.</p>
       <div class="hero-actions">
-        <a class="btn btn-primary btn-lg" href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">View the source on GitHub</a>
+        <a class="btn btn-primary btn-lg" href="https://github.com/OpenFabrica/tidy" target="_blank" rel="noopener noreferrer">View the source on GitHub</a>
         <a class="btn btn-secondary btn-lg" href="/en/blog/">Read the blog</a>
       </div>
     </div>
@@ -404,8 +404,8 @@ cd ui &amp;&amp; npm install &amp;&amp; npx tauri dev</code></pre>
         <ul>
           <li><a href="/en/blog/">Blog</a></li>
           <li><a href="/en/blog/rss.xml">RSS</a></li>
-          <li><a href="https://github.com/rambocode/tidy" target="_blank" rel="noopener noreferrer">GitHub</a></li>
-          <li><a href="https://github.com/rambocode/tidy/issues" target="_blank" rel="noopener noreferrer">Issues</a></li>
+          <li><a href="https://github.com/OpenFabrica/tidy" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="https://github.com/OpenFabrica/tidy/issues" target="_blank" rel="noopener noreferrer">Issues</a></li>
         </ul>
       </div>
       <div>
