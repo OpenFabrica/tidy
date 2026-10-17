@@ -19,9 +19,9 @@ use std::time::{Duration, SystemTime};
 /// component without an .app bundle may still be writing its state.
 const IDLE_FLOOR: Duration = Duration::from_secs(30 * 86_400);
 
-/// Spotlight confirmation must answer quickly; a stalled mdfind is treated as
-/// "unknown" and the candidate is withheld.
-const MDFIND_TIMEOUT: Duration = Duration::from_secs(5);
+/// The one bulk Spotlight query must answer in time; a stalled mdfind is
+/// treated as "unknown" and every candidate is withheld.
+const MDFIND_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// One orphan leftover row (UI badge data).
 #[derive(Debug, Clone, Serialize)]
@@ -162,29 +162,65 @@ fn idle_days(path: &Path) -> Option<u64> {
     Some(age.as_secs() / 86_400)
 }
 
-/// Spotlight confirmation through mdfind: Some(true) when an app with that
-/// bundle id still exists anywhere on disk, Some(false) when none is indexed,
-/// None when the tool could not answer (callers fail closed).
-fn spotlight_has_app(id: &str) -> Option<bool> {
-    // Re-check the character set right before building the query string so
-    // this function stays safe even if a caller skips the shape filter.
-    if !is_reverse_dns(id) {
-        return None;
-    }
+/// Every bundle id Spotlight has indexed, from ONE mdfind query, or None when
+/// the tool could not answer (callers fail closed).
+///
+/// One query per id used to cost ~20 ms each, serially; a home with ten
+/// thousand id-shaped leftovers (UUID-suffixed test defaults domains) kept the
+/// whole clean scan waiting for minutes. The bulk listing answers the same
+/// exact-match question for all ids in well under a second.
+fn spotlight_bundle_ids() -> Option<HashSet<String>> {
+    const ATTR: &str = "kMDItemCFBundleIdentifier";
     let argv = [
         "/usr/bin/mdfind".to_string(),
-        format!("kMDItemCFBundleIdentifier == '{id}'"),
+        "-0".to_string(),
+        "-attr".to_string(),
+        ATTR.to_string(),
+        format!("{ATTR} == '*'"),
     ];
     let result = crate::optimize::run_bounded(&argv, MDFIND_TIMEOUT);
     if !result.success() {
         return None;
     }
-    Some(result.output.lines().any(|line| !line.trim().is_empty()))
+    let ids = parse_bundle_ids(&result.output);
+    // Apple's own apps are always indexed; an empty set means Spotlight is
+    // off or still indexing, which is no proof that any app is gone.
+    if ids.is_empty() {
+        return None;
+    }
+    Some(ids)
 }
 
-/// Build the orphan plan with the real Spotlight probe.
+/// Parse `mdfind -0 -attr kMDItemCFBundleIdentifier` output: NUL-separated
+/// "<path>   kMDItemCFBundleIdentifier = <id>" records. The split uses the
+/// LAST marker so a path containing it cannot shift the value, and only the
+/// first line counts (run_bounded appends stderr after stdout).
+fn parse_bundle_ids(output: &str) -> HashSet<String> {
+    let marker = "   kMDItemCFBundleIdentifier = ";
+    output
+        .split('\0')
+        .filter_map(|record| record.rsplit_once(marker))
+        .filter_map(|(_, id)| id.lines().next())
+        .map(|id| id.trim().to_string())
+        .filter(|id| !id.is_empty() && id != "(null)")
+        .collect()
+}
+
+/// Build the orphan plan with the real Spotlight probe (queried lazily, once,
+/// and only if some leftover survives the cheaper filters).
 pub fn build_plan(home: &str, probes: &dyn LiveProbes, cancel: &CancelFlag) -> OrphanPlanOutput {
-    build_plan_with(home, probes, cancel, &spotlight_has_app)
+    let index: std::cell::OnceCell<Option<HashSet<String>>> = std::cell::OnceCell::new();
+    let spotlight = |id: &str| -> Option<bool> {
+        // The shape filter is the same guard the per-id query relied on.
+        if !is_reverse_dns(id) {
+            return None;
+        }
+        index
+            .get_or_init(spotlight_bundle_ids)
+            .as_ref()
+            .map(|ids| ids.contains(id))
+    };
+    build_plan_with(home, probes, cancel, &spotlight)
 }
 
 /// Build the orphan plan with an injectable Spotlight probe (tests cannot
@@ -202,7 +238,7 @@ pub fn build_plan_with(
         uninstall_mode: false,
     };
     // Spotlight answers are per id, and one id usually shows up under
-    // several roots; remember them so mdfind runs once per id.
+    // several roots; remember them so the probe runs once per id.
     let mut spotlight_seen: std::collections::HashMap<String, Option<bool>> =
         std::collections::HashMap::new();
 
@@ -423,6 +459,20 @@ mod tests {
 
     /// A Spotlight hit, an unanswerable Spotlight, or a non-idle process
     /// state each withhold the candidate.
+    #[test]
+    fn bulk_spotlight_output_parses_exact_ids() {
+        let out = "/Applications/Safari.app   kMDItemCFBundleIdentifier = com.apple.Safari\0\
+                   /odd   kMDItemCFBundleIdentifier = x/y.app   kMDItemCFBundleIdentifier = com.foo.App\0\
+                   /no-id.app   kMDItemCFBundleIdentifier = (null)\0\
+                   /last.app   kMDItemCFBundleIdentifier = com.bar.Tool\0\
+                   mdfind: warning on stderr";
+        let ids = parse_bundle_ids(out);
+        let mut got: Vec<&str> = ids.iter().map(String::as_str).collect();
+        got.sort();
+        assert_eq!(got, ["com.apple.Safari", "com.bar.Tool", "com.foo.App"]);
+        assert!(parse_bundle_ids("").is_empty());
+    }
+
     #[test]
     fn spotlight_and_process_guards_fail_closed() {
         let tmp = tempfile::tempdir().unwrap();

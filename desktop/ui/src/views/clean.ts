@@ -92,11 +92,13 @@ export const clean: View = {
       const meta = await appMeta();
       let blocked: BlockedCaches | null = null;
       let projects: ProjectReport[] = [];
-      let images: DockerImage[] = [];
-      let backups: BackupInfo[] = [];
-      let orphans: OrphanInfo[] = [];
-      let tools: ToolItem[] = [];
-      let sims: SimDevice[] = [];
+      // Keyed lookups: badges and the confirm note run once per row, and a
+      // home can hold ten thousand orphan rows — linear finds froze the view.
+      let images = new Map<string, DockerImage>();
+      let backups = new Map<string, BackupInfo>();
+      let orphans = new Map<string, OrphanInfo>();
+      let tools = new Map<string, ToolItem>();
+      let sims = new Map<string, SimDevice>();
       let dockerPlanId = "";
       let simsPlanId = "";
       let toolsPlanId = "";
@@ -163,13 +165,13 @@ export const clean: View = {
             return p !== undefined && (p.idle_days === null || p.idle_days < idleDays);
           }
           if (section === "docker") {
-            const img = imageOf(images, item.id);
+            const img = images.get(item.id);
             if (!img) return false;
             if (img.containers > 0) return true;
             if (img.dangling) return false;
             return img.age_days === null || img.age_days < idleMonths * 30;
           }
-          if (section === "tools") return toolOf(tools, item.id)?.target.kind === "snapshot";
+          if (section === "tools") return tools.get(item.id)?.target.kind === "snapshot";
           return false;
         },
         itemBadge: (item, section) => {
@@ -181,7 +183,7 @@ export const clean: View = {
               : `<span class="badge ok">${esc(t("prev.proj.idle", { d: p.idle_days }))}</span>`;
           }
           if (section === "docker") {
-            const img = imageOf(images, item.id);
+            const img = images.get(item.id);
             if (!img) return "";
             if (img.containers > 0)
               return `<span class="badge warn">${esc(t("prev.docker.inuse", { n: img.containers }))}</span>`;
@@ -192,7 +194,7 @@ export const clean: View = {
             )}</span>`;
           }
           if (section === "simulators") {
-            const sim = sims.find((s) => s.udid === item.id);
+            const sim = sims.get(item.id);
             if (!sim) return "";
             const parts = [sim.runtime];
             if (sim.age_days !== null) parts.push(t("prev.sim.age", { d: sim.age_days }));
@@ -200,7 +202,7 @@ export const clean: View = {
             return `<span class="badge ${sim.is_available ? "ok" : "warn"}">${esc(parts.join(" · "))}</span>`;
           }
           if (section === "ios_backups") {
-            const b = backups.find((x) => x.path === item.path);
+            const b = backups.get(item.path);
             if (!b) return "";
             const who = [b.device, b.product].filter((s) => s.length > 0).join(" · ");
             const when =
@@ -208,13 +210,13 @@ export const clean: View = {
             return `<span class="badge warn">${esc([who, when].filter((s) => s.length > 0).join(" · "))}</span>`;
           }
           if (section === "orphans") {
-            const o = orphans.find((x) => x.path === item.path);
+            const o = orphans.get(item.path);
             if (!o) return "";
             const idle = o.idle_days === null ? "" : ` · ${t("prev.proj.idle", { d: o.idle_days })}`;
             return `<span class="badge ok">${esc(o.bundle_id + idle)}</span>`;
           }
           if (section === "tools") {
-            const tool = toolOf(tools, item.id);
+            const tool = tools.get(item.id);
             if (!tool) return "";
             const kind = t(`prev.tool.${tool.target.kind}`);
             const text = tool.detail ? `${kind} · ${tool.detail}` : kind;
@@ -233,24 +235,24 @@ export const clean: View = {
           let backupCount = 0;
           let snapshotCount = 0;
           for (const item of selectedItems) {
-            if (imageOf(images, item.id) || item.id === "build-cache") {
+            if (images.has(item.id) || item.id === "build-cache") {
               dockerCount += 1;
               continue;
             }
-            if (sims.some((s) => s.udid === item.id)) {
+            if (sims.has(item.id)) {
               simCount += 1;
               continue;
             }
-            const tool = toolOf(tools, item.id);
+            const tool = tools.get(item.id);
             if (tool) {
               if (tool.target.kind === "snapshot") snapshotCount += 1;
               continue;
             }
-            if (orphans.some((o) => o.path === item.path)) {
+            if (orphans.has(item.path)) {
               orphanCount += 1;
               continue;
             }
-            if (backups.some((b) => b.path === item.path)) {
+            if (backups.has(item.path)) {
               backupCount += 1;
               continue;
             }
@@ -301,7 +303,7 @@ export const clean: View = {
           ]);
           if (c.status === "rejected") throw c.reason;
           blocked = c.value.blocked;
-          backups = c.value.backups;
+          backups = new Map(c.value.backups.map((b) => [b.path, b]));
           const summaries: PlanSummary[] = [c.value.summary];
           if (p.status === "fulfilled") {
             projects = p.value.projects;
@@ -309,12 +311,12 @@ export const clean: View = {
           }
           if (i.status === "fulfilled") summaries.push(i.value);
           if (d.status === "fulfilled" && d.value.summary.count > 0) {
-            images = d.value.images;
+            images = new Map(d.value.images.map((img) => [img.id, img]));
             dockerPlanId = d.value.summary.plan_id;
             summaries.push(d.value.summary);
           }
           if (sm.status === "fulfilled" && sm.value.summary.count > 0) {
-            sims = sm.value.devices;
+            sims = new Map(sm.value.devices.map((s) => [s.udid, s]));
             simsPlanId = sm.value.summary.plan_id;
             summaries.push(sm.value.summary);
           }
@@ -323,11 +325,11 @@ export const clean: View = {
             summaries.push(tr.value);
           }
           if (o.status === "fulfilled" && o.value.summary.count > 0) {
-            orphans = o.value.orphans;
+            orphans = new Map(o.value.orphans.map((x) => [x.path, x]));
             summaries.push(o.value.summary);
           }
           if (tl.status === "fulfilled" && tl.value.summary.count > 0) {
-            tools = tl.value.items;
+            tools = new Map(tl.value.items.map((x) => [x.id, x]));
             toolsPlanId = tl.value.summary.plan_id;
             summaries.push(tl.value.summary);
           }
@@ -385,16 +387,6 @@ function projectOf(projects: ProjectReport[], path: string): ProjectReport | und
     if (path.startsWith(p.root + "/") && (!best || p.root.length > best.root.length)) best = p;
   }
   return best;
-}
-
-/** Docker image row for a plan item id (ids are the full sha256 ids). */
-function imageOf(images: DockerImage[], id: string): DockerImage | undefined {
-  return images.find((img) => img.id === id);
-}
-
-/** Tool row for a plan item id ("snap:…", "brew:cleanup"). */
-function toolOf(tools: ToolItem[], id: string): ToolItem | undefined {
-  return tools.find((tool) => tool.id === id);
 }
 
 /** Shorten a project path for progress/badge display. */
