@@ -1126,51 +1126,267 @@ button.front-action-note:hover:not(:disabled) {
   align-self: center;
 }
 
-/* Scanning progress: count, live path and elapsed clock read as one block,
-   so they sit tighter than the hero's own 18px rhythm. The lines keep their
-   height when empty, or the page would jump on the first progress event. */
-.scan-lines {
+/* Scanning card (scancard.ts): MangoDisk's operation-progress layout —
+   ringed icon, live path, activity bar, three counters — inked in the paper
+   palette. It is a floating card on purpose: the only state that is "in
+   progress" rather than printed, so it is the one place a shadow appears. */
+.scan-stage {
+  display: grid;
+  place-items: center;
+  min-height: calc(100vh - 220px);
+  padding: 32px 0 48px;
+}
+
+.scan-card {
+  width: 100%;
+  max-width: 610px;
+  box-sizing: border-box;
+  padding: 28px;
+  background: #fffdf9;
+  border: 1px solid var(--rule-soft);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(38, 36, 31, 0.18);
   display: flex;
   flex-direction: column;
+}
+
+.scan-heading {
+  display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 18px;
 }
 
-.scan-lines .sub {
-  min-height: 20px;
+.scan-heading-text {
+  min-width: 0;
 }
 
-.hero .scan-path,
-.hero .scan-elapsed {
+.scan-heading h2 {
+  margin: 3px 0 0;
+  min-height: 26px;
+  overflow: hidden;
+  font: 600 20px/1.3 var(--font-serif);
+  color: var(--ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scan-stage-label {
+  display: block;
   font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: var(--rust);
+}
+
+/* The icon disc; the ring is a bordered circle whose top edge alone is solid,
+   so a plain rotation reads as an arc chasing around the broom. */
+.scan-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  color: var(--rust);
+  background: rgba(164, 67, 44, 0.08);
+}
+
+.scan-spinner {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border: 3px solid rgba(164, 67, 44, 0.18);
+  border-top-color: var(--rust);
+  border-radius: 50%;
+  animation: scan-spin 0.8s linear infinite;
+}
+
+.scan-path-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  margin-top: 24px;
+  padding: 13px 15px;
+  background: rgba(239, 233, 220, 0.55);
+  border: 1px solid var(--rule-soft);
+  border-radius: 11px;
+}
+
+.scan-folder {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 34px;
   color: var(--ink-faint);
 }
 
-/* A long directory name must wrap inside the column, never widen the hero. */
-.hero .scan-path {
-  max-width: 420px;
-  word-break: break-all;
+.scan-path-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
 }
 
-/* The running ticker: one line of monospaced wire copy under the headline. */
-.opt-ticker {
-  font: 12px/1.6 var(--font-mono);
+.scan-path-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 14px;
+  font-size: 11px;
+  line-height: 14px;
   color: var(--ink-faint);
-  min-height: 20px;
+  font-variant-numeric: tabular-nums;
 }
 
-.opt-ticker.tick {
-  animation: ticker-in 240ms var(--ease-standard);
+/* Middle ellipsis: the head shrinks and ellipsizes, the tail (the folder or
+   file name) never does. Fixed height so a path change never moves the card. */
+.scan-path-line {
+  display: flex;
+  height: 16px;
+  min-width: 0;
+  font: 500 12px/16px var(--font-mono);
+  color: var(--ink);
+  white-space: nowrap;
 }
 
-@keyframes ticker-in {
+.scan-path-line .head {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scan-path-line .tail {
+  flex: none;
+}
+
+/* Indeterminate activity: a third-width segment sweeps the track. */
+.scan-track {
+  height: 4px;
+  margin-top: 16px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(164, 67, 44, 0.1);
+}
+
+.scan-track span {
+  display: block;
+  width: 34%;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--rust);
+  animation: scan-activity 1.35s linear infinite;
+}
+
+/* Determinate progress (Optimize's task run): the segment becomes a fill
+   whose width the card sets, with a soft shimmer so it still reads as live. */
+.scan-track.determinate span {
+  position: relative;
+  overflow: hidden;
+  width: 0;
+  animation: none;
+  transition: width 0.2s var(--ease-standard);
+}
+
+.scan-track.determinate span::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 253, 249, 0.42), transparent);
+  transform: translateX(-100%);
+  animation: scan-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes scan-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+.scan-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.scan-stats > span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  min-height: 55px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: rgba(239, 233, 220, 0.65);
+  transition: background-color 200ms var(--ease-standard);
+}
+
+.scan-stats > span:hover {
+  background: var(--wash-1);
+}
+
+.scan-stats small {
+  overflow: hidden;
+  font-size: 10.5px;
+  line-height: 14px;
+  color: var(--ink-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scan-stats strong {
+  overflow: hidden;
+  font: 600 14px/18px var(--font-mono);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scan-hint {
+  margin: 13px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--ink-faint);
+  text-align: center;
+  text-wrap: pretty;
+}
+
+.scan-cancel {
+  align-self: center;
+  min-width: 100px;
+  height: 36px;
+  margin-top: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--paper);
+  border-radius: 6px;
+}
+
+.scan-cancel:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+@keyframes scan-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes scan-activity {
   from {
-    opacity: 0;
-    transform: translateY(4px);
+    transform: translateX(-110%);
   }
   to {
-    opacity: 1;
-    transform: none;
+    transform: translateX(310%);
   }
 }
 
@@ -2392,6 +2608,18 @@ th.sortable:hover {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* The scan spinner and activity bar are status, not decoration: without them
+   a long scan looks frozen. Under reduced motion they slow down instead of
+   stopping (the rule above would freeze them after one frame). */
+@media (prefers-reduced-motion: reduce) {
+  .scan-spinner,
+  .scan-track:not(.determinate) span,
+  .scan-track.determinate span::after {
+    animation-duration: 1.8s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 

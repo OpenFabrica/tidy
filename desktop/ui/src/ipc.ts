@@ -18,6 +18,7 @@ import type {
   ProcessDetail,
   PurgePlanPayload,
   ScanEvent,
+  ScanMeter,
   StatusSnapshot,
   TaskResult,
   LoginItem,
@@ -171,6 +172,9 @@ export const executePlan = (
 
 export const cancelTask = (taskId: string) =>
   invoke<boolean>("cancel_task", { taskId });
+
+/** Process-wide scan counters; monotonic, so callers diff against a baseline. */
+export const scanMeter = () => invoke<ScanMeter>("scan_meter");
 
 export const listOptimizeTasks = () => invoke<OptimizeTask[]>("list_optimize_tasks");
 export const runOptimize = (taskIds: string[]) =>

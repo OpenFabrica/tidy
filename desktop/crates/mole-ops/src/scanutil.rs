@@ -123,6 +123,57 @@ pub fn scan_workers(jobs: usize) -> usize {
 #[derive(Debug)]
 pub struct Cancelled;
 
+/// Process-wide live counters behind the scan progress screen: entries
+/// checked, allocated bytes walked, and a recent directory. They only ever
+/// grow — several scans run in parallel and none of them owns a reset — so a
+/// reader takes a baseline when its scan starts and shows the difference.
+static METER_ITEMS: AtomicU64 = AtomicU64::new(0);
+static METER_BYTES: AtomicU64 = AtomicU64::new(0);
+static METER_DIRS: AtomicU64 = AtomicU64::new(0);
+static METER_PATH: Mutex<String> = Mutex::new(String::new());
+
+/// Publish the current path once every this many directories: a string copy
+/// per directory would cost more than the walk itself on small trees.
+const METER_PATH_EVERY: u64 = 16;
+
+/// Point-in-time copy of the scan meter.
+#[derive(Debug, Clone, Default, serde::Serialize)]
+pub struct ScanMeter {
+    pub items: u64,
+    pub bytes: u64,
+    pub path: String,
+}
+
+/// Read the scan meter (cheap; safe to poll from the UI several times a second).
+pub fn scan_meter() -> ScanMeter {
+    ScanMeter {
+        items: METER_ITEMS.load(Ordering::Relaxed),
+        bytes: METER_BYTES.load(Ordering::Relaxed),
+        path: METER_PATH.lock().map(|p| p.clone()).unwrap_or_default(),
+    }
+}
+
+/// Add one batch of walked entries to the meter.
+fn meter_add(items: u64, blocks: u64) {
+    METER_ITEMS.fetch_add(items, Ordering::Relaxed);
+    METER_BYTES.fetch_add(blocks * 512, Ordering::Relaxed);
+}
+
+/// Record the directory being walked, sampled and without ever blocking a
+/// walker: a contended lock just skips this sample.
+fn meter_visit(dir: &Path) {
+    if !METER_DIRS
+        .fetch_add(1, Ordering::Relaxed)
+        .is_multiple_of(METER_PATH_EVERY)
+    {
+        return;
+    }
+    if let Ok(mut current) = METER_PATH.try_lock() {
+        current.clear();
+        current.push_str(&dir.to_string_lossy());
+    }
+}
+
 /// Cancellable recursive walk behind the size measurement. The node itself
 /// is stat'ed once; its children go through the bulk lister when possible.
 fn walk_tree(
@@ -141,6 +192,7 @@ fn walk_tree(
     };
     *blocks += meta.blocks();
     *items += 1;
+    meter_add(1, meta.blocks());
     if meta.is_dir() {
         walk_children(path, blocks, items, cancel)?;
     }
@@ -157,6 +209,7 @@ fn walk_children(
     items: &mut u64,
     cancel: &AtomicBool,
 ) -> Result<(), Cancelled> {
+    meter_visit(dir);
     let Some(entries) = bulk::list(dir) else {
         if let Ok(rd) = fs::read_dir(dir) {
             for entry in rd.flatten() {
@@ -165,6 +218,13 @@ fn walk_children(
         }
         return Ok(());
     };
+    // Publish this directory's own entries in one batch (subdirectories
+    // publish theirs when they are walked), not one atomic per entry.
+    let mut dir_blocks = 0u64;
+    for entry in &entries {
+        dir_blocks += entry.alloc_bytes / 512;
+    }
+    meter_add(entries.len() as u64, dir_blocks);
     for entry in entries {
         if cancel.load(Ordering::Relaxed) {
             return Err(Cancelled);
@@ -490,6 +550,17 @@ pub fn measure_tree(
 /// subdirectories as (name, the dir entry's own blocks)). Bulk path first,
 /// stat fallback second — same rules as `walk_children`.
 fn list_one_level(dir: &Path) -> (u64, u64, Vec<(std::ffi::OsString, u64)>) {
+    meter_visit(dir);
+    let (blocks, items, subdirs) = list_one_level_raw(dir);
+    // Feed the scan meter with every entry of this level: files plus the
+    // subdirectory entries themselves (their contents publish when listed).
+    let dir_blocks: u64 = subdirs.iter().map(|(_, b)| *b).sum();
+    meter_add(items + subdirs.len() as u64, blocks + dir_blocks);
+    (blocks, items, subdirs)
+}
+
+/// The listing behind `list_one_level`, without meter bookkeeping.
+fn list_one_level_raw(dir: &Path) -> (u64, u64, Vec<(std::ffi::OsString, u64)>) {
     let mut blocks = 0;
     let mut items = 0;
     let mut subdirs = Vec::new();
@@ -713,6 +784,28 @@ mod tests {
         }
         assert!(!tree.dirs.contains_key(&deep), "folded dirs get no entry");
         assert!(measure_tree(&root, &AtomicBool::new(true), |_, _| {}).is_err());
+    }
+
+    /// Every measured entry and byte must reach the process-wide meter (other
+    /// tests walk concurrently, so the check is "grew by at least").
+    #[test]
+    fn walk_feeds_scan_meter() {
+        let (_guard, root) = fixture();
+        let before = scan_meter();
+        let cancel = AtomicBool::new(false);
+        let (SizeKb::Known(kb), items) = dir_size_kb(&root, &cancel).unwrap() else {
+            panic!("size must be known");
+        };
+        let after = scan_meter();
+        assert!(after.items - before.items >= items);
+        assert!(after.bytes - before.bytes >= kb * 1024);
+
+        // Analyze's parallel tree walk feeds the same meter (every entry
+        // below the root; the root itself is not listed by anyone).
+        let before = scan_meter();
+        measure_tree(&root, &cancel, |_, _| {}).unwrap();
+        let after = scan_meter();
+        assert!(after.items - before.items >= items - 1);
     }
 
     #[test]

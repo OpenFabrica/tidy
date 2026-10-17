@@ -258,6 +258,7 @@ pub fn run() {
             commands::execute_tools,
             commands::execute_plan,
             commands::cancel_task,
+            commands::scan_meter,
             commands::reveal_in_finder,
             commands::list_optimize_tasks,
             commands::run_optimize,

@@ -12,12 +12,13 @@ import { stopwatch, track } from "../telemetry";
 import { open } from "@tauri-apps/plugin-dialog";
 import { renderFlow } from "../flow";
 import { renderFrontPage } from "../frontpage";
+import { renderScanCard, type ScanCard } from "../scancard";
 import { esc, humanBytes, humanKb, splitUnit } from "../format";
 import { t, timestamp } from "../i18n";
 import { setNavMeta } from "../router";
 import { squarify } from "../treemap";
 import type { View } from "../router";
-import type { DirListing } from "../types";
+import type { DirListing, ScanMeter } from "../types";
 
 /** Rank-ordered bar washes: the leader is rust, the tail fades into paper. */
 const BARS = ["#a4432c", "#c08468", "#d9c1ac", "#d9c1ac", "#e8ddce", "#efe9dc"];
@@ -116,11 +117,16 @@ interface ScanState {
   count: number;
   /** Epoch ms the scan started, for the elapsed clock. */
   startedAt: number;
+  /** Scan-meter zero point, kept so a card re-rendered mid-scan (tab switch)
+   * continues the counts instead of restarting them from zero. */
+  baseline: ScanMeter | null;
+  /** The user pressed cancel: drop the partial result and restore the page. */
+  cancelled: boolean;
 }
 let pending: ScanState | null = null;
 
-/** Elapsed-time ticker for the scanning page; only one ever runs. */
-let tick: number | undefined;
+/** The progress card on screen, if any; only one ever runs. */
+let card: ScanCard | null = null;
 
 /** The container while this view is mounted; null lets a background scan
  * finish without touching another tab's DOM. */
@@ -130,6 +136,10 @@ let mounted: HTMLElement | null = null;
  * section's opener, so a cold start always lands there even with a warm
  * cache; once the reader has been inside, tab switches restore the listing. */
 let visitedListing = false;
+
+/** Root of the listing last put on screen, so a cancelled drill-in scan can
+ * return to it. */
+let lastListingRoot: string | null = null;
 
 export const analyze: View = {
   async mount(container) {
@@ -150,12 +160,11 @@ export const analyze: View = {
   },
 };
 
-/** Stop the elapsed clock (the scan itself keeps running in the backend). */
+/** Stop the card's clock and meter polling (the scan itself keeps running
+ * in the backend). */
 function stopTick(): void {
-  if (tick !== undefined) {
-    clearInterval(tick);
-    tick = undefined;
-  }
+  card?.stop();
+  card = null;
 }
 
 /**
@@ -292,6 +301,8 @@ function startScan(root: string, fresh = false): void {
     label: "",
     count: 0,
     startedAt: Date.now(),
+    baseline: null,
+    cancelled: false,
   };
   pending = state;
   if (mounted) renderScanning(mounted, state);
@@ -302,7 +313,7 @@ function startScan(root: string, fresh = false): void {
     state.count = e.count;
     state.label = e.label;
     if (pending !== state) return;
-    paintProgress(state);
+    card?.setLabel(e.label);
   })
     .then((listing) => {
       // 只有跑完整的扫描才记时长：被取消的扫描（truncated）会把中位数拉低，
@@ -313,7 +324,11 @@ function startScan(root: string, fresh = false): void {
       if (pending !== state) return; // superseded by a newer navigation
       pending = null;
       stopTick();
-      // Cancelled scans are incomplete — render once, never cache.
+      if (state.cancelled) {
+        restoreAfterCancel();
+        return;
+      }
+      // Truncated scans are incomplete — render once, never cache.
       if (!listing.truncated) cacheListing(root, listing);
       if (mounted) renderListing(mounted, listing);
     })
@@ -321,73 +336,53 @@ function startScan(root: string, fresh = false): void {
       if (pending !== state) return;
       pending = null;
       stopTick();
+      if (state.cancelled) {
+        restoreAfterCancel();
+        return;
+      }
       if (mounted)
         mounted.innerHTML = `<div class="placeholder">${esc(String((e as Error)?.message ?? e))}</div>`;
     });
 }
 
-/** "0:07" / "3:41" elapsed clock for a scan that has been running a while. */
-function fmtElapsed(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000));
-  const m = Math.floor(total / 60);
-  return `${m}:${String(total % 60).padStart(2, "0")}`;
-}
-
-/** Last three components of a path, tilde-shortened — a full absolute path
- * would wrap and push the page around on every event. */
-function shortPath(path: string): string {
-  const short = tildify(path);
-  const parts = short.split("/").filter(Boolean);
-  if (parts.length <= 3) return short;
-  return `…/${parts.slice(-3).join("/")}`;
-}
-
-/** Write the live counters into the scanning page, if it is on screen. */
-function paintProgress(state: ScanState): void {
-  if (!mounted) return;
-  const count = mounted.querySelector<HTMLElement>("#scan-count");
-  if (count) count.textContent = state.count > 0 ? t("ana.walking", { n: state.count }) : "";
-  const path = mounted.querySelector<HTMLElement>("#scan-path");
-  if (path) path.textContent = state.label ? shortPath(state.label) : "";
-  const elapsed = mounted.querySelector<HTMLElement>("#scan-elapsed");
-  if (elapsed)
-    elapsed.textContent = t("ana.elapsed", { t: fmtElapsed(Date.now() - state.startedAt) });
-}
-
-/** Scanning page with live progress; shown fresh or when returning mid-scan.
- * Three signals of life: the directory count, the directory being read, and an
- * elapsed clock that keeps ticking between backend events. */
+/** Scanning page: the shared progress card (same as Clean's scan), shown
+ * fresh or when returning mid-scan with the clock and counts carried over. */
 function renderScanning(container: HTMLElement, state: ScanState): void {
-  container.innerHTML = `
-    <div class="hero">
-      <span class="kicker">${t("ana.scanning")}</span>
-      <div class="big">${esc(tildify(state.root))}</div>
-      <div class="scan-lines">
-        <p class="sub mono" id="scan-count"></p>
-        <p class="sub mono scan-path" id="scan-path"></p>
-        <p class="sub mono scan-elapsed" id="scan-elapsed"></p>
-      </div>
-      <button class="link-quiet" id="cancel">${t("flow.cancel")}</button>
-    </div>`;
-  container
-    .querySelector("#cancel")!
-    .addEventListener("click", () => void cancelTask(state.taskId));
-  paintProgress(state);
-  // The clock ticks locally so the page never looks frozen, even while the
-  // walker is stuck inside one huge directory between progress events.
   stopTick();
-  tick = window.setInterval(() => {
-    if (pending !== state || !mounted) {
-      stopTick();
-      return;
-    }
-    paintProgress(state);
-  }, 1000);
+  card = renderScanCard(container, {
+    home,
+    icon: "chart",
+    title: t("scan.ana.title"),
+    startedAt: state.startedAt,
+    baseline: state.baseline,
+    onBaseline: (m) => {
+      state.baseline = m;
+    },
+    onCancel: () => {
+      state.cancelled = true;
+      void cancelTask(state.taskId);
+    },
+  });
+  card.setLabel(state.label || state.root);
+}
+
+/** After a user cancel, show what the page showed before the scan: the
+ * listing the reader came from (drill-in cancelled), else the front page. */
+function restoreAfterCancel(): void {
+  if (!mounted) return;
+  const back = lastListingRoot;
+  if (back !== null && listingCache.has(back)) {
+    currentRoot = back;
+    renderListing(mounted, listingCache.get(back)!);
+  } else {
+    renderIdle(mounted);
+  }
 }
 
 /** Ranked ledger (or treemap) + child rail + whole-disk strip. */
 function renderListing(container: HTMLElement, listing: DirListing): void {
   visitedListing = true;
+  lastListingRoot = listing.root;
   const entries = listing.entries;
   const TOP = 6;
   const shown = entries.slice(0, TOP);

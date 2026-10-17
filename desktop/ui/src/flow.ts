@@ -9,6 +9,7 @@ import { cancelTask, executePlan, revealInFinder } from "./ipc";
 import { esc, figureClass, humanKb, splitUnit } from "./format";
 import { daysSince, lastReclaim, recordReclaim, totalFreedKb } from "./ledger";
 import { t } from "./i18n";
+import { renderScanCard } from "./scancard";
 import { stopwatch, track } from "./telemetry";
 import type { ExecItem, ExecReport, PlanItem, PlanSection, PlanSummary } from "./types";
 
@@ -58,36 +59,42 @@ const CHEVRON_SVG =
 /** Render the flow into a container (fresh instance per mount). */
 export function renderFlow(container: HTMLElement, taskId: string, opts: FlowOptions): void {
   container.innerHTML = `
-    <div class="hero" id="flow-hero">
-      <span class="kicker">${t("flow.scanning")}</span>
-      <div class="big">${esc(opts.title)}</div>
-      <p class="sub mono" id="scan-label"></p>
-      <button class="link-quiet" id="cancel-scan">${t("flow.cancel")}</button>
-    </div>
+    <div id="flow-hero"></div>
     <div class="content-narrow" id="flow-body"></div>`;
 
   const body = container.querySelector<HTMLElement>("#flow-body")!;
   const hero = container.querySelector<HTMLElement>("#flow-hero")!;
-  container.querySelector("#cancel-scan")!.addEventListener("click", () => {
-    void cancelTask(taskId);
-    opts.onCancel?.();
+  // A user cancel is not an error: the view goes back to how it looks on
+  // entry instead of printing the backend's "scan cancelled" message.
+  let cancelled = false;
+  const card = renderScanCard(hero, {
+    home: opts.home,
+    onCancel: () => {
+      cancelled = true;
+      void cancelTask(taskId);
+      opts.onCancel?.();
+    },
   });
 
   // 扫描与执行的埋点都收在这里：clean / apps / analyze 三个界面共用这套骨架，
   // 埋在各自的 view 里迟早会漏掉一个分支，也会各写各的口径。
   const scan = stopwatch();
   opts
-    .plan(taskId, (label) => {
-      const el = container.querySelector<HTMLElement>("#scan-label");
-      if (el) el.textContent = label;
-    })
+    .plan(taskId, (label) => card.setLabel(label))
     .then((result) => {
+      card.stop();
       track({ kind: "scan_completed", scan: surfaceOf(opts), duration_ms: scan() });
       hero.remove();
       renderPreview(body, Array.isArray(result) ? result : [result], opts);
     })
     .catch((e) => {
-      hero.innerHTML = `<div class="placeholder">${esc(String(e?.message ?? e))}</div>`;
+      card.stop();
+      if (cancelled || (e as { code?: unknown } | null)?.code === "cancelled") {
+        // Re-mounting the current route renders its initial state.
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+        return;
+      }
+      hero.innerHTML = `<div class="hero"><div class="placeholder">${esc(String(e?.message ?? e))}</div></div>`;
     });
 }
 

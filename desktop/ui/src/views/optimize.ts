@@ -1,7 +1,7 @@
 // Optimize view (newspaper skin): a "routine maintenance" column. The idle
 // page is a typographic hero; running the check opens the numbered six-item
 // grid from the reference — pick the tasks for this issue, run them
-// SEQUENTIALLY, and watch a single monospaced ticker. Admin tasks are skipped
+// SEQUENTIALLY, and watch the shared progress card. Admin tasks are skipped
 // up front when the privileged helper is unavailable. The right rail prints
 // the maintenance log, which comes from this machine's own past runs.
 
@@ -9,6 +9,7 @@ import { appMeta, listOptimizeTasks, runOptimize } from "../ipc";
 import { track } from "../telemetry";
 import { esc } from "../format";
 import { renderFrontPage } from "../frontpage";
+import { renderScanCard } from "../scancard";
 import {
   averageTaskMs,
   daysSince,
@@ -164,48 +165,58 @@ function renderChecklist(container: HTMLElement, tasks: OptimizeTask[]): void {
   });
 }
 
-/** Running page: sequential execution behind a single wire-copy ticker. */
+/** Running page: the shared progress card (same as Clean's scan) driven by
+ * the sequential task loop — current task on the path line, a determinate
+ * bar, and done/succeeded counts in the tiles. Tasks are not cancellable
+ * mid-run, so the card has no cancel button. */
 async function renderRunning(container: HTMLElement, tasks: OptimizeTask[]): Promise<void> {
-  container.innerHTML = `
-    <div class="hero">
-      <span class="kicker" id="title">${t("opt.running")}</span>
-      <div class="big" id="head">${t("opt.listTitle", { n: tasks.length })}</div>
-      <p class="sub" id="sub"></p>
-      <div class="opt-ticker" id="ticker"></div>
-    </div>`;
-  const hero = container.querySelector<HTMLElement>(".hero")!;
-  const title = container.querySelector<HTMLElement>("#title")!;
-  const head = container.querySelector<HTMLElement>("#head")!;
-  const sub = container.querySelector<HTMLElement>("#sub")!;
-  const ticker = container.querySelector<HTMLElement>("#ticker")!;
+  const card = renderScanCard(container, {
+    icon: "gauge",
+    stage: t("scan.opt.stage"),
+    title: t("scan.opt.title"),
+    pathLabel: t("scan.opt.current"),
+    hint: t("scan.opt.hint"),
+    meter: false,
+  });
+  const paintCounts = (done: number, ok: number) => {
+    card.setTile(0, t("scan.opt.progress"), `${done} / ${tasks.length}`);
+    card.setTile(1, t("scan.opt.ok"), String(ok));
+    card.setProgress(tasks.length > 0 ? done / tasks.length : null);
+  };
+  paintCounts(0, 0);
 
   const results: TaskResult[] = [];
   for (let i = 0; i < tasks.length; i++) {
     const task = tasks[i];
-    tick(ticker, `● ${task.title} · ${i + 1}/${tasks.length}`);
-    // One task per IPC call keeps the ticker honest about what is running.
+    card.setLabel(`${task.title} · ${i + 1}/${tasks.length}`);
+    // One task per IPC call keeps the card honest about what is running.
     const startedAt = Date.now();
     track({ kind: "optimize_run", action: task.id });
     const [result] = await runOptimize([task.id]);
     const settled = result ?? { id: task.id, outcome: "failed", output: "" };
     results.push(settled);
     recordMaintenance(task.id, task.title, settled.outcome, Date.now() - startedAt);
+    paintCounts(results.length, results.filter((r) => isOk(r)).length);
   }
+  card.stop();
 
   // Compact summary: real execution errors are "failed"; every refusal or
   // skip (admin gate, apps running, probe unknown, unavailable…) counts as
   // skipped so the closing line stays one glance long.
-  const okCount = results.filter((r) => ["ok", "unchanged"].includes(r.outcome)).length;
+  const okCount = results.filter((r) => isOk(r)).length;
   const failCount = results.filter((r) => r.outcome === "failed").length;
   const skipCount = results.length - okCount - failCount;
   const parts = [`${okCount} ${t("opt.sum.ok")}`];
   if (skipCount > 0) parts.push(`${skipCount} ${t("opt.sum.skip")}`);
   if (failCount > 0) parts.push(`${failCount} ${t("opt.sum.fail")}`);
 
-  ticker.remove();
-  title.textContent = t("opt.done");
-  head.textContent = parts.join(" · ");
-  sub.textContent = t("opt.doneSub");
+  container.innerHTML = `
+    <div class="hero">
+      <span class="kicker">${t("opt.done")}</span>
+      <div class="big">${esc(parts.join(" · "))}</div>
+      <p class="sub">${t("opt.doneSub")}</p>
+    </div>`;
+  const hero = container.querySelector<HTMLElement>(".hero")!;
   const back = document.createElement("button");
   back.className = "frame-cta";
   back.textContent = `${t("clean.again")} →`;
@@ -238,11 +249,7 @@ function ranRecently(id: string): boolean {
   return previous !== null && Date.now() - previous.at < RECENT_MS;
 }
 
-/** Swaps the ticker text and replays its slide-up entrance animation. */
-function tick(el: HTMLElement, text: string): void {
-  el.textContent = text;
-  el.classList.remove("tick");
-  // Force a reflow so removing and re-adding the class restarts the animation.
-  void el.offsetWidth;
-  el.classList.add("tick");
+/** A run that left the system in the wanted state (changed or already so). */
+function isOk(result: TaskResult): boolean {
+  return result.outcome === "ok" || result.outcome === "unchanged";
 }

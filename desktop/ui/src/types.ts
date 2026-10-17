@@ -149,6 +149,13 @@ export interface ScanEvent {
   count: number;
 }
 
+/** Process-wide scan counters (monotonic; diff against a baseline). */
+export interface ScanMeter {
+  items: number;
+  bytes: number;
+  path: string;
+}
+
 export interface ExecItem {
   id: string;
   path: string;

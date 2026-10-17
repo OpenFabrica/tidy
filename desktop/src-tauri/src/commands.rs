@@ -1051,6 +1051,14 @@ pub fn cancel_task(state: State<'_, AppState>, task_id: String) -> bool {
     state.cancel(&task_id)
 }
 
+/// Live scan meter (entries checked, bytes walked, a recent directory) for
+/// the scanning screen. Counters are process-wide and only grow; the UI
+/// shows the difference from the reading it took when its scan started.
+#[tauri::command]
+pub fn scan_meter() -> mole_ops::scanutil::ScanMeter {
+    mole_ops::scanutil::scan_meter()
+}
+
 /// Full detail for one process (modal click-through).
 #[tauri::command]
 pub async fn process_detail(pid: u32) -> Result<Option<mole_ops::status::ProcessDetail>, IpcError> {
