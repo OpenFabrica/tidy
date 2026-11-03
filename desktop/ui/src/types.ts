@@ -223,7 +223,8 @@ export interface DockerImage {
   tag: string;
   size_kb: number;
   containers: number;
-  age_days: number | null;
+  /** Days since last use (pull/build/tag or any container activity). */
+  idle_days: number | null;
   dangling: boolean;
 }
 

@@ -154,8 +154,8 @@ export const clean: View = {
         },
         // Default checkbox state comes from the user's thresholds (Settings):
         // project deps idle ≥ N days, Docker images unused ≥ N months (no
-        // container uses them; docker has no last-used stamp, so age is
-        // creation age). Dangling images and unused build cache are always
+        // container uses them and idle_days — newest of pull/build/tag and
+        // container activity — reaches the threshold). Dangling images and unused build cache are always
         // checked; in-use images never are. Opt-in sections and Time Machine
         // snapshots start unchecked regardless of size.
         defaultUnchecked: (item, section) => {
@@ -169,7 +169,7 @@ export const clean: View = {
             if (!img) return false;
             if (img.containers > 0) return true;
             if (img.dangling) return false;
-            return img.age_days === null || img.age_days < idleMonths * 30;
+            return img.idle_days === null || img.idle_days < idleMonths * 30;
           }
           if (section === "tools") return tools.get(item.id)?.target.kind === "snapshot";
           return false;
@@ -188,9 +188,9 @@ export const clean: View = {
             if (img.containers > 0)
               return `<span class="badge warn">${esc(t("prev.docker.inuse", { n: img.containers }))}</span>`;
             if (img.dangling) return `<span class="badge ok">${esc(t("prev.docker.dangling"))}</span>`;
-            if (img.age_days === null) return "";
-            return `<span class="badge ${img.age_days >= idleMonths * 30 ? "ok" : "warn"}">${esc(
-              t("prev.docker.age", { d: img.age_days }),
+            if (img.idle_days === null) return "";
+            return `<span class="badge ${img.idle_days >= idleMonths * 30 ? "ok" : "warn"}">${esc(
+              t("prev.docker.idle", { d: img.idle_days }),
             )}</span>`;
           }
           if (section === "simulators") {
