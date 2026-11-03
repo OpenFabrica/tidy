@@ -1419,23 +1419,47 @@ button.front-action-note:hover:not(:disabled) {
   display: none;
 }
 
+/* 窄窗口下只让标题区收缩：文字截断成省略号，不能溢出压到右侧大小列上。 */
 .clean-card .sec-text {
   display: flex;
   align-items: baseline;
   gap: 10px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .clean-card .sec-title {
+  display: flex;
+  align-items: baseline;
   font-weight: 600;
   font-size: 13.5px;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
 }
 
+.clean-card .sec-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 复选框、大小、展开箭头保持原宽，不参与收缩。 */
+.clean-card .sec-check,
+.clean-card .sec-size,
+.clean-card .chev {
+  flex-shrink: 0;
+}
+
+/* "已选 x/y" 比名称次要：空间不够时先截它，名称最后才截。 */
 .clean-card .sec-title .muted {
   font: 11.5px/1.4 var(--font-mono);
   font-weight: 400;
   margin-left: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 10000;
 }
 
 .clean-card .sec-desc {
@@ -1491,16 +1515,29 @@ button.front-action-note:hover:not(:disabled) {
   border-top: 1px dotted var(--rule-soft);
 }
 
+/* 展开后的明细行同理：名称截断，数量、大小、按钮不收缩。 */
 .item-row .item-text {
   display: flex;
   align-items: baseline;
   gap: 8px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .item-row .iname {
   font-weight: 600;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item-row > input,
+.item-row .isize,
+.item-row .icount,
+.item-row .chev,
+.item-row .badge {
+  flex-shrink: 0;
 }
 
 .item-row .ipath {

@@ -155,7 +155,7 @@ function renderPreview(body: HTMLElement, summaries: PlanSummary[], opts: FlowOp
         <div class="card-row">
           <input type="checkbox" class="sec-check" data-seccheck="${idx}" />
           <div class="sec-text">
-            <span class="sec-title">${esc(meta.name)}<span class="muted" data-seccount="${idx}"></span></span>
+            <span class="sec-title"><span class="sec-name">${esc(meta.name)}</span><span class="muted" data-seccount="${idx}"></span></span>
             ${meta.desc ? `<span class="sec-desc">${esc(meta.desc)}</span>` : ""}
           </div>
           <div class="spacer"></div>
