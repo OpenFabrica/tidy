@@ -1,0 +1,228 @@
+/* Tidy — 分析（含树图）.
+   Builds on the shared primitives in tabloid.css; only this view's own
+   layout lives here: the scope row passed into the shared front page, the
+   breadcrumb title row, ranked bars, treemap, rail checklist and disk strip. */
+
+/* ── 首页范围切换（作为 extraHtml 传给共享首页）──────────────────── */
+.scope-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  margin-top: 18px;
+  font-size: 13.5px;
+}
+
+.scope-row button {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 0 0 3px;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+
+.scope-row button:hover:not(:disabled) {
+  color: var(--rust);
+}
+
+.scope-row button.on {
+  color: var(--rust);
+  border-bottom-color: var(--rust);
+  font-weight: 600;
+}
+
+/* ── 标题行：面包屑（不换行，过长省略）+ 右侧项数 ──────────────────
+   The count wraps under the crumbs as a whole when the row is too short;
+   neither side ever breaks inside itself. */
+.ana-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.crumbs {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  font: 600 clamp(20px, 0.8vw + 13px, 26px)/1.3 var(--font-serif);
+  white-space: nowrap;
+}
+
+.crumbs a {
+  flex: none;
+  color: var(--rust);
+}
+
+.crumbs a:hover {
+  color: var(--rust-dark);
+}
+
+/* The last crumb is where the reader is: set in ink, and the one allowed to
+   ellipsize when a long folder name meets a narrow window. */
+.crumbs a:last-of-type {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink);
+}
+
+.crumbs .sep {
+  flex: none;
+  color: var(--ink-ghost);
+  font-weight: 400;
+}
+
+.ana-count {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  flex: none;
+  margin-left: auto;
+  font: 12px/1.4 var(--font-mono);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* ── 排行条：名称 … 大小 · 占比，下方实心条 ─────────────────────── */
+.bar-row {
+  padding: 10px 0 12px;
+  border-bottom: 1px dotted var(--leader);
+}
+
+.bar-row.dir {
+  cursor: pointer;
+}
+
+.bar-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  margin-bottom: 6px;
+}
+
+.bar-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.bar-row.lead .bar-name {
+  font-weight: 600;
+}
+
+.bar-row.dir:hover .bar-name {
+  color: var(--rust);
+}
+
+.bar-size {
+  flex: none;
+  margin-left: auto;
+}
+
+/* The track stays paper: the palest rank wash is the track's own colour. */
+.bar-row .bar {
+  background: none;
+}
+
+.ana-hint {
+  margin-top: 12px;
+}
+
+/* ── 树图：高度随窗口，最高 460px ────────────────────────────────── */
+.treemap {
+  position: relative;
+  height: clamp(300px, 62vh, 460px);
+  margin-top: 14px;
+  border: 1px solid var(--rule-strong);
+  overflow: hidden;
+}
+
+.treemap .block {
+  position: absolute;
+  padding: 6px 8px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--paper);
+  color: var(--paper);
+}
+
+.treemap .block:hover {
+  filter: brightness(1.08);
+}
+
+.treemap .bname {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.treemap .bsize {
+  font: 11px/1.4 var(--font-mono);
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+/* ── 侧栏：领头目录预览 + 勾选清单 ─────────────────────────────── */
+.ana-page .side .act-row {
+  margin-top: 14px;
+}
+
+.ana-page .tr.pick .ell {
+  color: var(--ink);
+}
+
+/* ── 页脚磁盘条：已用（实心）+ 可用（虚线框）────────────────────── */
+.disk-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule-strong);
+  font: 11.5px/1.4 var(--font-mono);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.disk-strip .disk-k {
+  flex: none;
+  letter-spacing: 2px;
+  color: var(--ink);
+}
+
+.disk-strip #disk-label {
+  flex: none;
+}
+
+.disk-strip .strip {
+  display: flex;
+  flex: 1 1 120px;
+  min-width: 80px;
+  height: 10px;
+}
+
+.disk-strip .strip .used {
+  background: var(--wash-5);
+}
+
+.disk-strip .strip .free {
+  flex: 1;
+  border: 1px dashed var(--leader);
+  border-left: 0;
+}

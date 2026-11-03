@@ -1,0 +1,650 @@
+/* Tidy — 软件（卸载 / 更新 / 启动项）.
+   Builds on the shared primitives in tabloid.css; only this view's own
+   layout lives here. Everything is scoped under .apps-page so the
+   sub-tab, toggle and selection-bar rules cannot leak into other views. */
+
+/* ── 子页签：衬线词，选中的是锈红 + 下划线 ─────────────────────────── */
+.apps-page .subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px clamp(18px, 2.4vw, 28px);
+  padding: 16px 0 0;
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+/* The sub-tabs are <button>s: strip the shared hairline button box. */
+.apps-page .subtab {
+  flex: none;
+  margin-bottom: -1px;
+  padding: 0 0 8px;
+  border: 0;
+  border-bottom: 2.5px solid transparent;
+  border-radius: 0;
+  background: none;
+  font: 600 clamp(18px, 0.8vw + 11px, 22px)/1.2 var(--font-serif);
+  color: var(--ink-ghost);
+  white-space: nowrap;
+}
+
+.apps-page .subtab:hover:not(:disabled) {
+  border-color: transparent;
+  color: var(--ink-soft);
+}
+
+.apps-page .subtab.on,
+.apps-page .subtab.on:hover:not(:disabled) {
+  color: var(--rust);
+  border-bottom-color: var(--rust);
+}
+
+.apps-page .subtabs .extra {
+  flex: none;
+  margin-left: auto;
+  align-self: center;
+  white-space: nowrap;
+}
+
+/* Modules sit flush under the sub-tab rule (the grid draws its own lines). */
+.apps-page #tab-body > .grid {
+  margin-top: -1px;
+}
+
+.apps-page #tab-body > .placeholder {
+  padding: 72px 0;
+}
+
+/* A second group inside one module starts with its own kick. */
+.apps-page .grp {
+  margin-top: 26px;
+}
+
+/* Native <details> blocks drawn as a ruled fold: summary line + chevron. */
+.apps-page .fold > summary {
+  display: flex;
+  overflow: hidden;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  list-style: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.apps-page .fold > summary::-webkit-details-marker {
+  display: none;
+}
+
+.apps-page .fold > summary .chev {
+  margin-left: auto;
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+
+.apps-page .fold[open] > summary .chev {
+  transform: rotate(90deg);
+}
+
+/* Expand chevrons are tap targets: a touch larger than the shared 11px. */
+.apps-page button.chev {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.apps-page button.chev:hover:not(:disabled) {
+  color: var(--rust);
+}
+
+/* Rail tables run tighter than the main list. */
+.apps-page .side .tr {
+  padding: 5px 0;
+  font-size: 12.5px;
+}
+
+.apps-page .side-foot {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+/* App icons: loaded artwork replaces the lettered wash tile. */
+.apps-page .icon:has(img) {
+  background: none;
+}
+
+.apps-page .icon img {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+/* ── 卸载 · B1 名录 ─────────────────────────────────────────────────── */
+.apps-page .sorts {
+  display: inline-flex;
+  gap: 12px;
+}
+
+.apps-page .sorts a.on {
+  color: var(--ink);
+}
+
+/* Search field drawn as the mock's ruled box; the input fills it. */
+.apps-page .search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--rule-soft);
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  cursor: text;
+}
+
+.apps-page .search:focus-within {
+  border-color: var(--rust);
+}
+
+.apps-page .search input {
+  flex: 1;
+  width: 100%;
+  border: 0;
+  padding: 3px 0;
+}
+
+.apps-page .search input::placeholder {
+  color: var(--ink-faint);
+}
+
+#app-list .placeholder {
+  padding: 40px 0;
+}
+
+/* Row: checkbox | icon | name · meta · picked | size. */
+.apps-page .app-row .head {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px dotted var(--leader);
+  cursor: pointer;
+}
+
+.apps-page .app-row .icon {
+  align-self: center;
+}
+
+.apps-page .app-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.apps-page .app-main .name {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.apps-page .app-main .meta {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+
+.apps-page .app-main .picked {
+  flex: none;
+  font: 11px/1.4 var(--font-mono);
+  color: var(--rust);
+}
+
+.apps-page .app-main .picked:empty {
+  display: none;
+}
+
+.apps-page .app-row .head:hover .name,
+.apps-page .app-row.current .name,
+.apps-page .app-row.selected .name {
+  color: var(--rust);
+}
+
+/* ── 卸载 · B2 档案 ─────────────────────────────────────────────────── */
+.apps-page .dossier-name {
+  font: 600 clamp(28px, 1.4vw + 16px, 40px)/1.15 var(--font-serif);
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.apps-page .dossier-path {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.apps-page .dossier .placeholder {
+  padding: 48px 0;
+}
+
+.apps-page .note-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+/* Long backend notes may wrap inside their badge rather than overflow. */
+.apps-page .note-list .badge {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.apps-page .dossier-box {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.apps-page .dossier-box .cell-actions .note {
+  text-wrap: pretty;
+}
+
+.apps-page .dossier-kv {
+  margin-top: 14px;
+}
+
+.apps-page .detail-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 14px;
+  margin-top: 22px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-soft);
+  font-size: 13px;
+}
+
+.apps-page .detail-box b {
+  white-space: nowrap;
+}
+
+/* The count pushes the select-all link and the chevron to the right edge
+   (the link may be hidden, so the push lives on the count, not the link). */
+.apps-page .det-count {
+  margin-right: auto;
+  font-size: 11.5px;
+  color: var(--ink-faint);
+}
+
+.apps-page .detail-box .chev {
+  padding: 0 2px;
+}
+
+/* .tbl sets display:grid, which would beat the [hidden] attribute. */
+.apps-page #det-items[hidden] {
+  display: none;
+}
+
+/* Fixed category track so the path column lines up across rows. */
+.apps-page .det-item {
+  grid-template-columns: auto minmax(0, 7.5em) minmax(0, 1fr) auto;
+  padding: 6px 0;
+  font-size: 12.5px;
+}
+
+.apps-page .det-cat {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.apps-page .det-path {
+  font: 11px/1.4 var(--font-mono);
+  color: var(--ink-soft);
+}
+
+/* ── 卸载 · B3 建议关注 ─────────────────────────────────────────────── */
+.apps-page .kv.watch {
+  margin-top: 8px;
+}
+
+.apps-page .watch-note {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule-soft);
+  text-wrap: pretty;
+}
+
+/* ── 选中后吸底的操作条 ─────────────────────────────────────────────
+   It lives inside .page, so it bleeds out over the gutters and eats the
+   page's bottom padding to sit flush with the window edge. */
+.apps-page .selbar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 24px calc(-1 * var(--gutter)) -48px;
+  padding: 12px var(--gutter);
+  background: var(--paper);
+  border-top: 2.5px solid var(--rule-strong);
+  white-space: nowrap;
+}
+
+.apps-page .selbar .count {
+  flex: none;
+  font: 600 14px/1.2 var(--font-serif);
+}
+
+.apps-page .selbar .dots {
+  flex: 1 1 24px;
+  min-width: 24px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--leader) 1px, transparent 1px) 0 0 / 3px 1px repeat-x;
+}
+
+/* ── 更新 ───────────────────────────────────────────────────────────── */
+.apps-page .upd-results {
+  margin-top: 14px;
+  border-top: 1px solid var(--rule-strong);
+}
+
+.apps-page .upd-results .tr {
+  grid-template-columns: auto minmax(0, 1fr);
+  font-size: 12.5px;
+}
+
+.apps-page .upd-results .msg {
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+.apps-page .upd-all {
+  margin-left: 10px;
+  letter-spacing: 0;
+}
+
+/* Row: icon | name + badge + chevron / version line | ignore | action. */
+.apps-page .upd-row {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  column-gap: 14px;
+  padding: 10px 0;
+}
+
+.apps-page .upd-row .icon {
+  align-self: start;
+  margin-top: 2px;
+}
+
+.apps-page .upd-row .info {
+  min-width: 0;
+}
+
+.apps-page .upd-row .title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.apps-page .upd-row .name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.apps-page .upd-row .ver {
+  display: block;
+  margin-top: 2px;
+  font: 11.5px/1.5 var(--font-mono);
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.apps-page .upd-row .ver .new {
+  color: var(--ink);
+}
+
+.apps-page .upd-row .ver .arrow {
+  margin: 0 4px;
+  color: var(--ink-ghost);
+}
+
+.apps-page .upd-row .notes {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.apps-page .upd-ignore {
+  font-size: 12px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.apps-page .upd-ignore:hover {
+  color: var(--rust);
+}
+
+.apps-page .upd-ignore.disabled {
+  pointer-events: none;
+  color: var(--ink-ghost);
+}
+
+.apps-page .upd-act {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+/* Per-row update action: a small rust text button (the bar .btn is
+   reserved for the one primary action per screen). */
+.apps-page .upd-btn {
+  padding: 0 0 1px;
+  border: 0;
+  border-bottom: 1.5px solid var(--rust);
+  border-radius: 0;
+  font: 600 13px/1.3 var(--font-serif);
+  color: var(--rust);
+}
+
+.apps-page .upd-btn:hover:not(:disabled) {
+  color: var(--rust-dark);
+  border-bottom-color: var(--rust-dark);
+}
+
+.apps-page .upd-btn:disabled {
+  color: var(--ink-ghost);
+  border-bottom-color: var(--ink-ghost);
+}
+
+/* Homebrew command hint: never wraps, ellipsizes on narrow rows. */
+.apps-page .upd-cmd {
+  display: inline-block;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+  padding: 1px 6px;
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius-sm);
+  font: 11px/1.5 var(--font-mono);
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.apps-page .upd-hint {
+  margin-top: 8px;
+  text-wrap: pretty;
+}
+
+.apps-page .uptodate {
+  margin-top: 26px;
+}
+
+.apps-page .uptodate > summary {
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--rule-strong);
+  font: 500 11px/1.4 var(--font-mono);
+  letter-spacing: 2px;
+}
+
+.apps-page .uptodate > summary:hover span:first-child {
+  color: var(--rust);
+}
+
+.apps-page .uptodate .tr {
+  padding: 6px 0;
+  font-size: 12.5px;
+}
+
+.apps-page .uptodate .tr .note {
+  white-space: nowrap;
+}
+
+.apps-page .warnings {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.apps-page .warnings > summary {
+  font-size: 12.5px;
+}
+
+.apps-page .warnings .note {
+  padding-top: 8px;
+  overflow-wrap: anywhere;
+}
+
+/* ── 启动项 ─────────────────────────────────────────────────────────── */
+/* Row: glyph/icon | label over sub line | reveal | toggle or 只读. */
+.apps-page .li-row {
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 12px;
+}
+
+.apps-page .li-glyph {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.apps-page .li-main {
+  display: grid;
+  min-width: 0;
+}
+
+.apps-page .li-title {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.apps-page .li-sub {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font: 11px/1.5 var(--font-mono);
+  color: var(--ink-faint);
+}
+
+.apps-page .li-ro {
+  font: 11px/1.4 var(--font-mono);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.apps-page .reveal {
+  padding: 2px 2px;
+}
+
+.apps-page .reveal:hover:not(:disabled) {
+  color: var(--rust-dark);
+}
+
+.apps-page .login-explain {
+  margin-top: 12px;
+}
+
+/* Switch: square print-style track; on = rust fill, knob slides right.
+   Ported from the old base.css pill toggle, squared for the tabloid. */
+.apps-page .toggle {
+  position: relative;
+  flex: none;
+  width: 32px;
+  height: 16px;
+  padding: 0;
+  border: 1px solid var(--ink-soft);
+  border-radius: 0;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+.apps-page .toggle::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 10px;
+  height: 10px;
+  background: var(--ink-soft);
+  transition: transform var(--motion-base) var(--ease-standard);
+}
+
+.apps-page .toggle.on {
+  border-color: var(--rust);
+  background: var(--rust);
+}
+
+.apps-page .toggle.on::after {
+  background: var(--paper);
+  transform: translateX(16px);
+}
+
+.apps-page .toggle:hover:not(:disabled) {
+  border-color: var(--rust);
+}
+
+.apps-page .toggle:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ── 窄窗口 ─────────────────────────────────────────────────────────── */
+/* Two-column spread (≤1100px): the dossier column is ~half the page, so
+   its figure box stacks the number above the action instead of squeezing. */
+@media (max-width: 1100px) {
+  .apps-page .dossier-box {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .apps-page .dossier-box > .cell + .cell {
+    padding: 14px 0 16px;
+    border-left: 0;
+    border-top: 1px solid var(--rule-soft);
+  }
+
+  .apps-page .dossier-box > .cell:first-child {
+    padding-bottom: 14px;
+  }
+}
+
+@media (max-width: 980px) {
+  .apps-page .selbar {
+    gap: 14px;
+  }
+}

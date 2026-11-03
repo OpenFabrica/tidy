@@ -1,5 +1,6 @@
-// Hash router with a mount/unmount lifecycle. Renders the newspaper masthead
-// (wordmark · section tabs · marginalia) above the double rule, applies the
+// Hash router with a mount/unmount lifecycle. Renders the tabloid masthead
+// (wordmark · section tabs with page codes · marginalia) above the double
+// rule, applies the
 // per-route body theme, and re-renders on language switches (setLang fires a
 // hashchange). Settings and language switching live in the tray menu / the
 // settings view, not in the masthead.
@@ -51,7 +52,16 @@ export function setNavMeta(html: string | null): void {
   const el = document.getElementById("nav-meta");
   metaOverridden = html !== null;
   if (!el) return;
-  el.innerHTML = html ?? mastheadDate();
+  el.innerHTML = html ?? datelineHtml();
+}
+
+/** The default marginalia: "周二 · 11月3日 · 20:56", with everything before
+ * the clock wrapped in .long so narrow windows can drop it and keep the time. */
+function datelineHtml(): string {
+  const full = mastheadDate();
+  const cut = full.lastIndexOf(" · ");
+  if (cut < 0) return full;
+  return `<span class="long">${full.slice(0, cut + 3)}</span>${full.slice(cut + 3)}`;
 }
 
 /** Render the masthead for the active route. */
@@ -60,16 +70,17 @@ function renderNav(activeHash: string): void {
   const visible = routes.filter((r) => !r.hidden);
   const major = visible.filter((r) => !r.minor);
   const minor = visible.filter((r) => r.minor);
-  const link = (r: Route, cls: string) =>
-    `<a href="${r.hash}" class="${cls} ${r.hash === activeHash ? "active" : ""}">${t(r.labelKey)}</a>`;
+  // Each section gets a tabloid page code (A1 清理, B1 软件, …) in order.
+  const link = (r: Route, i: number) =>
+    `<a href="${r.hash}" class="mast-tab${r.hash === activeHash ? " on" : ""}"><span class="pg">${String.fromCharCode(65 + i)}1</span>${t(r.labelKey)}</a>`;
   nav.innerHTML = `
-    <div class="masthead">
-      <span class="mast-wordmark">TIDY</span>
-      <div class="mast-tabs">
-        ${major.map((r) => link(r, "")).join("")}
-        ${minor.length > 0 ? `<span class="mast-sep"></span>${minor.map((r) => link(r, "minor")).join("")}` : ""}
-      </div>
-      <span class="mast-meta" id="nav-meta">${mastheadDate()}</span>
+    <div class="mast">
+      <span class="mast-word">TIDY</span>
+      <nav class="mast-tabs">
+        ${major.map(link).join("")}
+        ${minor.map((r, i) => link(r, major.length + i)).join("")}
+      </nav>
+      <span class="mast-meta" id="nav-meta">${datelineHtml()}</span>
     </div>
     <div class="mast-rules"></div>`;
 }
@@ -102,7 +113,7 @@ export function start(): void {
   clockTimer = window.setInterval(() => {
     if (metaOverridden || document.hidden) return;
     const el = document.getElementById("nav-meta");
-    if (el) el.textContent = mastheadDate();
+    if (el) el.innerHTML = datelineHtml();
   }, 20_000);
 }
 

@@ -1,0 +1,141 @@
+/* Tidy — 优化.
+   Builds on the shared primitives in tabloid.css; only this view's own
+   layout lives here: the numbered task grid, the log module and the
+   results summary. The idle front page and the running card are shared
+   (frontpage.ts / scancard.ts) and styled elsewhere. */
+
+/* ── 任务清单：编号任务按栏宽自动排成 3 / 2 / 1 列 ───────────────── */
+.opt-page .headrow {
+  margin-bottom: 4px;
+}
+
+.opt-page .headrow .title {
+  min-width: 0;
+}
+
+/* Grid lines between cards come from each card's dotted bottom rule, so a
+   ragged last row never leaves a stray border. */
+.tasks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  column-gap: 32px;
+}
+
+.task {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 14px;
+  min-width: 0;
+  padding: 14px 0;
+  border-bottom: 1px dotted var(--leader);
+}
+
+.task .no {
+  min-width: 1.3em;
+  font: 600 30px/1 var(--font-serif);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.task .body {
+  min-width: 0;
+}
+
+.task .t-title {
+  font: 600 14.5px/1.5 var(--font-ui);
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
+}
+
+.task .t-desc {
+  margin-top: 2px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--ink-faint);
+  text-wrap: pretty;
+}
+
+/* Chosen / add toggle: a quiet rust text action; "ran today" is a status,
+   not a control, so it is set in moss. */
+.task .state {
+  display: inline-block;
+  margin-top: 6px;
+  font: 11.5px/1.4 var(--font-mono);
+  white-space: nowrap;
+}
+
+.task button.state {
+  color: var(--rust);
+}
+
+.task button.state:hover:not(:disabled) {
+  color: var(--rust-dark);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.task .state.ran {
+  color: var(--ok);
+}
+
+.task.off .no {
+  color: var(--ink-ghost);
+}
+
+.task.off .t-title {
+  color: var(--ink-soft);
+}
+
+/* ── 维护日志 ─────────────────────────────────────────────────────── */
+.opt-log .when {
+  display: inline-block;
+  min-width: 3.4em;
+  margin-right: 6px;
+  font-size: 11.5px;
+}
+
+.opt-log .v {
+  color: var(--ink-soft);
+}
+
+.opt-log .v.bad {
+  font-size: 11.5px;
+  color: var(--warn);
+}
+
+.opt-note {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.opt-page .side .act-row {
+  margin-top: 12px;
+}
+
+/* ── 结果：成功 / 跳过 / 失败 各占一格，数字放大 ─────────────────── */
+.opt-done {
+  padding-top: 22px;
+}
+
+.opt-sum .ticker {
+  --cell: 160px;
+}
+
+.opt-sum .tick-v {
+  font-size: var(--fs-figure);
+  letter-spacing: -1px;
+}
+
+.opt-sum .tick.warn .tick-v {
+  color: var(--warn);
+}
+
+.opt-sum .tick.danger .tick-v {
+  color: var(--danger);
+}
+
+.opt-done-sub {
+  margin-top: 18px;
+  color: var(--ink-soft);
+}

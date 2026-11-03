@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tidy · mock</title>
+    <!-- 浏览器预览入口：用假的 Tauri 桥接跑真实界面，不进生产构建。
+         打开 http://localhost:<port>/mock/index.html#/clean
+         ?scene=<name> 让各 fixture 切换数据（见 mock/fixtures/*.ts）。 -->
+    <link rel="stylesheet" href="/src/styles/tokens.css" />
+    <link rel="stylesheet" href="/src/styles/tabloid.css" />
+    <link rel="stylesheet" href="/src/styles/view-clean.css" />
+    <link rel="stylesheet" href="/src/styles/view-apps.css" />
+    <link rel="stylesheet" href="/src/styles/view-optimize.css" />
+    <link rel="stylesheet" href="/src/styles/view-analyze.css" />
+    <link rel="stylesheet" href="/src/styles/view-status.css" />
+    <link rel="stylesheet" href="/src/styles/view-settings.css" />
+  </head>
+  <body>
+    <div id="app">
+      <nav id="nav" data-tauri-drag-region="deep"></nav>
+      <div id="banner"></div>
+      <main id="view"></main>
+    </div>
+    <script type="module" src="/mock/tauri.ts"></script>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

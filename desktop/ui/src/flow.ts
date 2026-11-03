@@ -1,20 +1,25 @@
-// The shared destructive-flow skeleton, set as a newspaper spread:
-// scanning → three-column ledger preview (总额 · 账目 · 说明) → confirm sheet
-// → live execution feed → reclaimed-space page. One confirmation pattern for
+// The shared destructive-flow skeleton, set as a tabloid page (redesign B):
+// scanning → ledger preview (databox with the reclaimable figure and the
+// action, a full-width ledger module, side modules) → confirm sheet → live
+// execution card → reclaimed-space page. One confirmation pattern for
 // every destructive surface.
 // Performance contract: checkbox toggles patch section rows and the subtotal
 // in place — the ledger never re-renders wholesale.
 
 import { cancelTask, executePlan, revealInFinder } from "./ipc";
-import { esc, figureClass, humanKb, splitUnit } from "./format";
+import { esc, humanKb, splitUnit } from "./format";
+import { figureHtml, kickHtml } from "./frontpage";
 import { daysSince, lastReclaim, recordReclaim, totalFreedKb } from "./ledger";
-import { t } from "./i18n";
+import { relativeDay, t } from "./i18n";
 import { renderScanCard } from "./scancard";
 import { stopwatch, track } from "./telemetry";
 import type { ExecItem, ExecReport, PlanItem, PlanSection, PlanSummary } from "./types";
 
 export interface FlowOptions {
   title: string;
+  /** Folio line on every stage (e.g. "第 47 期 · 智能清理专栏"); omitted =
+   * the title (preview) or nothing (scan card). */
+  issue?: string;
   /** Kick off the scan; receives a progress-label setter. A view may return
    * several plans (clean + purge + installer) — each keeps its own backend
    * plan/execute funnel; the flow only merges their sections for display. */
@@ -60,7 +65,7 @@ const CHEVRON_SVG =
 export function renderFlow(container: HTMLElement, taskId: string, opts: FlowOptions): void {
   container.innerHTML = `
     <div id="flow-hero"></div>
-    <div class="content-narrow" id="flow-body"></div>`;
+    <div id="flow-body"></div>`;
 
   const body = container.querySelector<HTMLElement>("#flow-body")!;
   const hero = container.querySelector<HTMLElement>("#flow-hero")!;
@@ -69,6 +74,7 @@ export function renderFlow(container: HTMLElement, taskId: string, opts: FlowOpt
   let cancelled = false;
   const card = renderScanCard(hero, {
     home: opts.home,
+    folio: opts.issue,
     onCancel: () => {
       cancelled = true;
       void cancelTask(taskId);
@@ -94,7 +100,7 @@ export function renderFlow(container: HTMLElement, taskId: string, opts: FlowOpt
         window.dispatchEvent(new HashChangeEvent("hashchange"));
         return;
       }
-      hero.innerHTML = `<div class="hero"><div class="placeholder">${esc(String(e?.message ?? e))}</div></div>`;
+      hero.innerHTML = `<div class="page"><div class="placeholder">${esc(String(e?.message ?? e))}</div></div>`;
     });
 }
 
@@ -121,13 +127,32 @@ function displayName(path: string): string {
   return path.replace(/\/$/, "").split("/").pop() ?? path;
 }
 
-/** Stage 2: the ledger spread — headline total, account rows, house rules. */
+/** Folio line for the flow's pages: the issue (when the view has one) on
+ * the left, a stage word on the right. */
+function folioHtml(issue: string | undefined, stage: string): string {
+  return issue
+    ? `<div class="folio"><span class="issue">${esc(issue)}</span><span>${esc(stage)}</span></div>`
+    : `<div class="folio"><span class="issue">${esc(stage)}</span></div>`;
+}
+
+/** Split "清理规则：…" into the eyebrow title and the prose after the colon,
+ * so the rules module reads like the reference without new copy. */
+function splitRules(text: string): [string, string] {
+  const m = /^([^：:]{1,16})[：:]\s*(.+)$/s.exec(text);
+  return m ? [m[1], m[2]] : ["", text];
+}
+
+/** Stage 2: the ledger page — databox (reclaimable figure, lede, action),
+ * the ledger module, and the side modules (last clean, lifetime, rules). */
 function renderPreview(body: HTMLElement, summaries: PlanSummary[], opts: FlowOptions): void {
   if (summaries.reduce((n, s) => n + s.count, 0) === 0) {
     body.innerHTML = `
-      <div class="hero">
-        <span class="kicker">${esc(opts.title)}</span>
-        <div class="big">${t("flow.nothing")}</div>
+      <div class="page flow-empty">
+        ${folioHtml(opts.issue, opts.title)}
+        <section class="mod">
+          ${kickHtml(1, opts.title)}
+          <h1 class="headline">${t("flow.nothing")}</h1>
+        </section>
       </div>`;
     return;
   }
@@ -152,14 +177,13 @@ function renderPreview(body: HTMLElement, summaries: PlanSummary[], opts: FlowOp
     .map((section, idx) => {
       const meta = sectionMeta(section.title);
       return `<div class="clean-card" data-card="${idx}">
-        <div class="card-row">
+        <div class="sec">
           <input type="checkbox" class="sec-check" data-seccheck="${idx}" />
-          <div class="sec-text">
-            <span class="sec-title"><span class="sec-name">${esc(meta.name)}</span><span class="muted" data-seccount="${idx}"></span></span>
-            ${meta.desc ? `<span class="sec-desc">${esc(meta.desc)}</span>` : ""}
+          <div class="sec-main">
+            <div class="sec-title"><b class="sec-name">${esc(meta.name)}</b><span class="cnt" data-seccount="${idx}"></span></div>
+            ${meta.desc ? `<div class="sec-desc" title="${esc(meta.desc)}">${esc(meta.desc)}</div>` : ""}
           </div>
-          <div class="spacer"></div>
-          <div class="sec-size" data-secsize="${idx}"></div>
+          <span class="sec-size" data-secsize="${idx}"></span>
           <button class="chev" data-chev="${idx}" title="${t("prev.expand")}">${CHEVRON_SVG}</button>
         </div>
         <div class="sec-items" data-items="${idx}" hidden></div>
@@ -169,45 +193,60 @@ function renderPreview(body: HTMLElement, summaries: PlanSummary[], opts: FlowOp
 
   const previous = lastReclaim(opts.ledger ?? "clean");
   const lifetime = totalFreedKb();
-  const [grandValue, grandUnit] = splitUnit(humanKb(grandKb));
+
+  const [rulesTitle, rulesBody] = splitRules(
+    opts.trashOverride ? t("prev.side.rulesTrash") : t("prev.side.rules"),
+  );
 
   body.innerHTML = `
-    <div class="cols" style="padding-top:36px">
-      <div class="col-main" style="flex:0 0 330px">
-        <span class="kicker">${t("prev.available")}</span>
-        <div class="figure ${figureClass(grandValue)}" id="grand-total">${grandValue}<span class="unit">${grandUnit}</span></div>
-        <p class="lede">${t("prev.lede")}</p>
-        ${opts.subtitleHtml?.() ?? ""}
-        <button class="link-cta" id="go"></button>
-        <button class="link-quiet" id="expand-all">${t("prev.expandAll")}</button>
-        <button class="link-quiet" id="close-preview">${t("flow.cancel")}</button>
-      </div>
-      <div class="col-main col-rule">
-        <div class="led-head">
-          <span class="title">${t("prev.accounts")}</span>
-          <span class="aside">
-            <a href="#" id="sel-all">${t("prev.selectall")}</a> /
-            <a href="#" id="sel-none">${t("prev.clear")}</a>
-          </span>
+    <div class="page flow-ledger">
+      ${folioHtml(opts.issue, opts.title)}
+      <section class="databox">
+        <div class="cell">
+          <div class="cell-k">${t("prev.willFree")}</div>
+          <div class="fig" id="sel-total"></div>
+          <div class="sel-share">
+            <div class="meter"><i id="sel-meter"></i></div>
+            <div class="note">${esc(t("prev.ofTotal", { size: humanKb(grandKb) }))}</div>
+          </div>
         </div>
-        ${rows}
-        <div class="led total">
-          <span class="label" id="foot-count"></span>
-          <span class="dots"></span>
-          <span class="amt" id="foot-size"></span>
+        <div class="cell lede">
+          <p class="prose">${t("prev.lede")}</p>
+          ${opts.subtitleHtml?.() ?? ""}
         </div>
-      </div>
-      <div class="col-side">
-        <div>
-          <div class="sec-label">${t("prev.side.last")}</div>
-          <div class="figure sm">${previous ? t("clean.stat.daysAgo", { d: daysSince(previous.at) }) : "—"}</div>
+        <div class="cell cell-actions">
+          <button class="btn lg" id="go"></button>
+          <div class="pair">
+            <a class="link plain" href="#" id="sel-all">${t("prev.selectall")}</a><span class="sep">/</span><a class="link plain" href="#" id="sel-none">${t("prev.clear")}</a>
+            <span class="sep">·</span>
+            <button class="link plain" id="expand-all">${t("prev.expandAll")}</button>
+            <span class="sep">·</span>
+            <button class="link plain" id="close-preview">${t("flow.cancel")}</button>
+          </div>
         </div>
-        <div>
-          <div class="sec-label">${t("prev.side.total")}</div>
-          <div class="figure sm">${lifetime > 0 ? humanKb(lifetime) : "—"}</div>
-        </div>
-        <div class="rule-soft" style="padding-top:16px;font-size:12px;line-height:1.8;color:var(--ink-faint);text-wrap:pretty">
-          ${opts.trashOverride ? t("prev.side.rulesTrash") : t("prev.side.rules")}
+      </section>
+      <div class="grid split">
+        <section class="mod ledger-mod">
+          ${kickHtml(2, t("prev.accounts"), `<span class="aside" id="kick-sum"></span>`)}
+          ${rows}
+          <div class="tr sum c2">
+            <span class="ell" id="foot-count"></span>
+            <span class="num foot-size" id="foot-size"></span>
+          </div>
+        </section>
+        <div class="side">
+          <section class="mod">
+            ${kickHtml(3, t("prev.side.last"))}
+            <div class="fig sm">${previous ? figureHtml(relativeDay(daysSince(previous.at))) : "—"}</div>
+          </section>
+          <section class="mod">
+            ${kickHtml(4, t("prev.side.total"))}
+            <div class="fig sm">${lifetime > 0 ? figureHtml(humanKb(lifetime)) : "—"}</div>
+          </section>
+          <section class="mod">
+            ${kickHtml(5, rulesTitle)}
+            <p class="prose sm">${esc(rulesBody)}</p>
+          </section>
         </div>
       </div>
     </div>`;
@@ -227,10 +266,11 @@ function renderPreview(body: HTMLElement, summaries: PlanSummary[], opts: FlowOp
     body.querySelector(`[data-seccount="${idx}"]`)!.textContent =
       ` ${t("prev.selected")} ${set.size}/${section.items.length}`;
     const sizeEl = body.querySelector<HTMLElement>(`[data-secsize="${idx}"]`)!;
-    sizeEl.textContent =
+    // Partial selections print the full size muted: "1.10GB / 3.21GB".
+    sizeEl.innerHTML =
       set.size === section.items.length
-        ? humanKb(section.total_kb)
-        : `${humanKb(selKb)} / ${humanKb(section.total_kb)}`;
+        ? esc(humanKb(section.total_kb))
+        : `${esc(humanKb(selKb))} <span class="of">/ ${esc(humanKb(section.total_kb))}</span>`;
     const cb = body.querySelector<HTMLInputElement>(`[data-seccheck="${idx}"]`)!;
     cb.checked = set.size === section.items.length && set.size > 0;
     cb.indeterminate = set.size > 0 && set.size < section.items.length;
@@ -250,6 +290,14 @@ function renderPreview(body: HTMLElement, summaries: PlanSummary[], opts: FlowOp
     body.querySelector("#foot-count")!.textContent =
       `${t("prev.subtotal")} · ${t("prev.selected")} ${count} ${t("prev.items")}`;
     body.querySelector("#foot-size")!.textContent = humanKb(kb);
+    body.querySelector("#kick-sum")!.textContent =
+      `${t("prev.selected")} ${count} ${t("prev.items")} · ${humanKb(kb)}`;
+    // The headline figure is what this run will free (the checked items);
+    // the full reclaimable total stays underneath as the meter's scale.
+    const [selValue, selUnit] = splitUnit(humanKb(kb));
+    body.querySelector("#sel-total")!.innerHTML = `${esc(selValue)}<small>${esc(selUnit)}</small>`;
+    body.querySelector<HTMLElement>("#sel-meter")!.style.width =
+      `${grandKb > 0 ? Math.min(100, (kb / grandKb) * 100) : 0}%`;
     const go = body.querySelector<HTMLButtonElement>("#go")!;
     go.textContent = `${opts.verb} →`;
     go.disabled = count === 0;
@@ -273,19 +321,21 @@ function renderPreview(body: HTMLElement, summaries: PlanSummary[], opts: FlowOp
     holder.innerHTML = section.items
       .map((item) => {
         const gated = item.scope === "system" && !opts.helperAvailable;
-        return `<div class="item-row">
+        const badges = `${opts.itemBadge?.(item, section.title) ?? ""}${
+          gated ? `<span class="badge warn">${t("flow.admin")}</span>` : ""
+        }`;
+        return `<div class="item">
           <input type="checkbox" data-item="${esc(item.id)}" data-sec="${idx}"
             ${checked[idx].has(item.id) ? "checked" : ""} ${gated ? "disabled" : ""} />
-          <div class="item-text">
-            <span class="iname">${esc(displayName(item.path))}</span>
-            <span class="ipath" title="${esc(item.path)}">${esc(tildify(item.path, opts.home))}</span>
-          </div>
-          <div class="spacer"></div>
-          ${item.item_count > 1 ? `<span class="icount muted">${item.item_count} ${t("prev.items")}</span>` : ""}
-          <span class="isize">${item.size_kb === null ? "?" : humanKb(item.size_kb)}</span>
-          ${opts.itemBadge?.(item, section.title) ?? ""}
-          ${gated ? `<span class="badge warn">${t("flow.admin")}</span>` : ""}
-          <button class="chev reveal" data-reveal="${esc(item.path)}" title="Finder">↗</button>
+          <span class="item-main">
+            <b class="iname" title="${esc(displayName(item.path))}">${esc(displayName(item.path))}</b>
+            <span class="path" title="${esc(item.path)}">${esc(tildify(item.path, opts.home))}</span>
+          </span>
+          <span class="item-meta">${
+            item.item_count > 1 ? `<span class="num muted">${item.item_count} ${t("prev.items")}</span>` : ""
+          }${badges}</span>
+          <span class="num isize">${item.size_kb === null ? "?" : humanKb(item.size_kb)}</span>
+          <button class="reveal" data-reveal="${esc(item.path)}" title="Finder">↗</button>
         </div>`;
       })
       .join("");
@@ -410,13 +460,13 @@ export function confirmSheet(
   const sheet = document.createElement("div");
   sheet.className = "confirm-backdrop";
   sheet.innerHTML = `
-    <div class="confirm-sheet">
-      <h2>${esc(t("flow.confirm.title", { n: count }))}</h2>
-      <p class="lede">${esc(t("flow.confirm.sub", { size: humanKb(totalKb) }))}</p>
+    <div class="confirm-sheet" role="dialog" aria-modal="true">
+      <h2 class="title">${esc(t("flow.confirm.title", { n: count }))}</h2>
+      <p class="note confirm-sub">${esc(t("flow.confirm.sub", { size: humanKb(totalKb) }))}</p>
       ${note ? `<p class="confirm-note">${esc(note)}</p>` : ""}
       <div class="confirm-actions">
-        <button id="confirm-cancel">${t("flow.cancel")}</button>
-        <button id="confirm-go" class="danger">${esc(verb)}</button>
+        <button class="link" id="confirm-cancel">${t("flow.cancel")}</button>
+        <button class="btn" id="confirm-go">${esc(verb)} →</button>
       </div>
     </div>`;
   document.body.appendChild(sheet);
@@ -440,13 +490,14 @@ export interface ExecJob {
 export function runExecution(
   body: HTMLElement,
   jobs: ExecJob[],
-  opts: Pick<FlowOptions, "trashOverride" | "execute" | "ledger" | "afterDone" | "home">,
+  opts: Pick<FlowOptions, "trashOverride" | "execute" | "ledger" | "afterDone" | "home" | "issue">,
 ): void {
   // Deletion cannot be interrupted midway (each item is one atomic sink
   // call), so the card has no cancel button; the meter is off because
   // progress comes from per-item callbacks, not from a file walk.
   const card = renderScanCard(body, {
     home: opts.home,
+    folio: opts.issue,
     stage: t("flow.working"),
     title: t("flow.exec.title"),
     pathLabel: t("flow.exec.current"),
@@ -509,20 +560,27 @@ export function runExecution(
       // The house ledger only ever records what actually came back from the
       // backend, so the hero statlines quote real history.
       recordReclaim(opts.ledger ?? "clean", freedKb);
+      const [freedValue, freedUnit] = splitUnit(humanKb(freedKb));
       body.innerHTML = `
-        <div class="hero">
-          <span class="kicker">${t("flow.done")}</span>
-          <div class="figure ${figureClass(splitUnit(humanKb(freedKb))[0])}">${
-            splitUnit(humanKb(freedKb))[0]
-          }<span class="unit">${splitUnit(humanKb(freedKb))[1]}</span></div>
-          <p class="sub">${t("flow.freed")}</p>
-          <div class="statline">
-            <span>${t("flow.skipped")} · ${skipped}</span>
-            <span>${t("flow.failed")} · ${failed}</span>
-          </div>
-          <button class="frame-cta" id="again">${t("clean.again")} →</button>
-        </div>
-        ${problemsHtml(problems, opts.home)}`;
+        <div class="page flow-done">
+          ${folioHtml(opts.issue, t("flow.done"))}
+          <section class="databox">
+            <div class="cell">
+              <div class="cell-k">${t("flow.freed")}</div>
+              <div class="fig">${esc(freedValue)}<small>${esc(freedUnit)}</small></div>
+            </div>
+            <div class="cell lede done-lede">
+              <div class="cell-k done-stats">
+                <span>${t("flow.skipped")} · ${skipped}</span>
+                <span>${t("flow.failed")} · ${failed}</span>
+              </div>
+            </div>
+            <div class="cell cell-actions">
+              <button class="btn lg" id="again">${t("clean.again")} →</button>
+            </div>
+          </section>
+          ${problemsHtml(problems, opts.home)}
+        </div>`;
       body.querySelector("#again")!.addEventListener("click", () => {
         window.dispatchEvent(new HashChangeEvent("hashchange"));
       });
@@ -539,10 +597,13 @@ export function runExecution(
       }
       // 执行失败时替换整个视图，避免停留在无出口的"处理中"状态
       body.innerHTML = `
-        <div class="hero">
-          <span class="kicker">${t("flow.failed")}</span>
-          <p class="sub">${esc(String(e?.message ?? e))}</p>
-          <button class="frame-cta" id="again">${t("clean.again")} →</button>
+        <div class="page flow-done">
+          ${folioHtml(opts.issue, t("flow.failed"))}
+          <section class="mod flow-failed">
+            ${kickHtml(1, t("flow.failed"))}
+            <p class="prose">${esc(String(e?.message ?? e))}</p>
+            <div class="act-row"><button class="btn lg" id="again">${t("clean.again")} →</button></div>
+          </section>
         </div>`;
       body.querySelector("#again")!.addEventListener("click", () => {
         window.dispatchEvent(new HashChangeEvent("hashchange"));
@@ -550,23 +611,30 @@ export function runExecution(
     });
 }
 
-/** The done page's list of items that were not removed, each with a plain
- * reason. Empty string when everything went through. */
+/** The done page's module listing items that were not removed, each with a
+ * plain reason (path · size · reason). Empty string when everything went
+ * through. */
 function problemsHtml(items: ExecItem[], home?: string): string {
   if (items.length === 0) return "";
+  const totalKb = items.reduce((n, item) => n + (item.size_kb ?? 0), 0);
   const rows = items
     .map(
-      (item) => `<tr>
-        <td title="${esc(item.path)}">${esc(tildify(item.path, home))}</td>
-        <td class="num">${item.size_kb === null ? "" : humanKb(item.size_kb)}</td>
-        <td class="muted" title="${esc(item.error ?? "")}">${esc(failureReason(item))}</td>
-      </tr>`,
+      (item) => `<div class="tr skip">
+        <span class="ell mono path-cell" title="${esc(item.path)}">${esc(tildify(item.path, home))}</span>
+        <span class="num">${item.size_kb === null ? "" : humanKb(item.size_kb)}</span>
+        <span class="reason" title="${esc(item.error ?? "")}">${esc(failureReason(item))}</span>
+      </div>`,
     )
     .join("");
   return `
-    <div class="exec-problems">
-      <div class="led-head"><span class="title">${esc(t("flow.problems", { n: items.length }))}</span></div>
-      <table><tbody>${rows}</tbody></table>
+    <div class="grid exec-problems">
+      <section class="mod span-all">
+        ${kickHtml(2, t("flow.problems", { n: items.length }), totalKb > 0 ? `<span class="aside">${esc(humanKb(totalKb))}</span>` : "")}
+        <div class="tbl">
+          <div class="tr th skip"><span>${t("flow.col.path")}</span><span class="num">${t("flow.col.size")}</span><span>${t("flow.col.reason")}</span></div>
+          ${rows}
+        </div>
+      </section>
     </div>`;
 }
 

@@ -1,7 +1,7 @@
-// Settings (reference design): a centered sheet with 通用/工具/菜单栏 tabs.
-// Rows are title + description left, control right. Only real capabilities
-// appear — native-only features (wipe-screen guard, caffeinate, license)
-// are not faked.
+// Settings (tabloid skin): a centered ruled sheet with 通用/工具/菜单栏 tabs
+// carrying page codes, a kicker over each tab's section, and rows of title +
+// muted description left, control right. Only real capabilities appear —
+// native-only features (wipe-screen guard, caffeinate, license) are not faked.
 
 import {
   appMeta,
@@ -56,7 +56,7 @@ function row(title: string, desc: string, control: string): string {
   </div>`;
 }
 
-/** Segmented control HTML. */
+/** Segmented control HTML (square print boxes; the active value is rust). */
 function segmented(id: string, options: [string, string][], active: string): string {
   return `<div class="segmented" id="${id}">${options
     .map(
@@ -71,7 +71,7 @@ function numberInput(id: string, value: number, unit: string): string {
   return `<label class="num-field"><input type="number" id="${id}" min="1" max="3650" value="${value}" /> ${unit}</label>`;
 }
 
-/** Toggle switch HTML. */
+/** Toggle switch HTML (square print switch, rust when on). */
 function toggle(id: string, on: boolean): string {
   return `<button class="toggle ${on ? "on" : ""}" id="${id}"></button>`;
 }
@@ -83,6 +83,7 @@ export const settings: View = {
     unlistenHelper?.();
     unlistenHelper = undefined;
   },
+  /** Load every setting once, then draw the active tab into the sheet. */
   async mount(container) {
     // `#/settings?section=menubar` (tray menu / panel footer) lands on the
     // 菜单栏 tab with that section scrolled into view and focused.
@@ -105,11 +106,14 @@ export const settings: View = {
     resident = residentPrefs ? createPrefsStore(residentPrefs) : null;
 
     const draw = () => {
-      const tabs: [Tab, string][] = [
-        ["general", t("set.tab.general")],
-        ["tools", t("set.tab.tools")],
-        ["menubar", t("set.tab.menubar")],
+      // Each tab gets a page code (S1 通用, S2 工具, S3 菜单栏), echoed by the
+      // kicker over its section so the sheet reads like a tabloid page.
+      const tabs: [Tab, string, string][] = [
+        ["general", "S1", t("set.tab.general")],
+        ["tools", "S2", t("set.tab.tools")],
+        ["menubar", "S3", t("set.tab.menubar")],
       ];
+      const [, code, label] = tabs.find(([id]) => id === tab)!;
       const body =
         tab === "general"
           ? generalTab(fda, autostart, backend)
@@ -118,23 +122,28 @@ export const settings: View = {
             : menubarTab();
 
       container.innerHTML = `
-        <div class="settings-sheet">
-          <div class="preview-head" style="margin-bottom:8px">
-            <h1 style="font-size:22px;margin:0">${t("set.title")}</h1>
-            <button class="chev" id="set-close">✕</button>
-          </div>
-          <div class="mast-tabs" style="margin-bottom:18px">
-            ${tabs
-              .map(
-                ([id, label]) =>
-                  `<a href="#" data-tab="${id}" class="${id === tab ? "active" : ""}">${label}</a>`,
-              )
-              .join("")}
-          </div>
-          ${body}
-          <div class="muted" style="margin-top:16px;font-family:var(--font-mono);font-size:11px">
-            ${PRODUCT_NAME} v${esc(meta.app_version)} · ${esc(meta.protection_data_sha256.slice(0, 12))}…
-            · ${meta.helper_available ? t("set.helper.on") : t("set.helper.off")}
+        <div class="page set-page">
+          <div class="set-sheet">
+            <header class="set-head">
+              <h1 class="title">${t("set.title")}</h1>
+              <nav class="set-tabs">
+                ${tabs
+                  .map(
+                    ([id, pg, name]) =>
+                      `<a href="#" data-tab="${id}" class="set-tab${id === tab ? " on" : ""}"><span class="pg">${pg}</span>${name}</a>`,
+                  )
+                  .join("")}
+              </nav>
+              <button class="chev set-close" id="set-close" aria-label="✕">✕</button>
+            </header>
+            <section class="set-section">
+              <div class="kick"><span class="code">${code}</span><span class="t">${label}</span></div>
+              ${body}
+            </section>
+            <p class="set-colophon">
+              ${PRODUCT_NAME} v${esc(meta.app_version)} · ${esc(meta.protection_data_sha256.slice(0, 12))}…
+              · ${meta.helper_available ? t("set.helper.on") : t("set.helper.off")}
+            </p>
           </div>
         </div>`;
 
@@ -226,13 +235,13 @@ function toolsTab(patterns: string[], purgePaths: string[] | null, touchidOn: bo
         pref("delete-mode", "permanent"),
       ),
     ),
-    `<div class="set-row" style="flex-direction:column;align-items:stretch;gap:8px">
+    `<div class="set-row set-stack">
       <div class="set-text">
         <div class="set-title">${t("set.protect")}</div>
         <div class="set-desc muted">${t("set.protect.desc")}</div>
       </div>
-      <textarea id="wl">${esc(patterns.join("\n"))}</textarea>
-      <div style="display:flex;gap:8px;align-items:center">
+      <textarea id="wl" class="set-textarea" spellcheck="false">${esc(patterns.join("\n"))}</textarea>
+      <div class="set-inline">
         <button id="wl-save">${t("set.save")}</button>
         <span id="wl-status" class="muted"></span>
       </div>
@@ -240,7 +249,9 @@ function toolsTab(patterns: string[], purgePaths: string[] | null, touchidOn: bo
     </div>`,
     row(
       t("set.purgepaths"),
-      purgePaths ? purgePaths.map(esc).join("<br>") : t("set.purgedefault"),
+      purgePaths
+        ? `<span class="set-paths">${purgePaths.map(esc).join("<br>")}</span>`
+        : t("set.purgedefault"),
       "",
     ),
     row(
@@ -436,7 +447,7 @@ function wire(container: HTMLElement, redraw: () => void): void {
       const warnings = await whitelistSet(patterns);
       status.textContent = t("set.saved");
       container.querySelector<HTMLElement>("#wl-warnings")!.innerHTML = warnings
-        .map((w) => `<div class="badge warn" style="margin-top:6px">${esc(w)}</div>`)
+        .map((w) => `<div class="badge warn set-warn">${esc(w)}</div>`)
         .join("");
     } catch (e) {
       status.textContent = String(e);

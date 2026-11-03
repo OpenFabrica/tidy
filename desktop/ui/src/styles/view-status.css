@@ -1,0 +1,436 @@
+/* Tidy — 状态（指标、风扇、进程表、进程详情）.
+   Builds on the shared primitives in tabloid.css; only this view's own
+   layout lives here. Every class is prefixed st- so nothing leaks into the
+   other views. */
+
+/* ── 行情带 ───────────────────────────────────────────────────────── */
+/* 过热/压力过高：数字换成危险色（不是锈红链接色的用法，只用于告警） */
+.st-page .tick.st-hot .tick-v,
+.st-hot-v {
+  color: var(--danger);
+}
+
+/* CPU 数字后的负载标签（低/中/高负载），和单位同一行、不换行 */
+.st-load {
+  margin-left: 6px;
+  font-family: var(--font-ui);
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* 横条与柱状图的竖向位置对齐：横条只有 8px 高，往下挪到图区中线 */
+.st-meter-chart {
+  padding-top: 7px;
+}
+
+/* ── 风扇控制条：行情带与模块网格之间的一条有框线的横栏 ─────────── */
+.st-fan {
+  padding: 16px 0 18px;
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.st-fan .kick {
+  margin-bottom: 12px;
+}
+
+/* 一行控件；放不下时整块换行，滑杆吃掉剩余宽度 */
+.st-fan-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 18px;
+  min-width: 0;
+  font-size: 12.5px;
+}
+
+.st-fan-row > button {
+  flex: none;
+}
+
+.st-fan-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.st-fan-mode {
+  flex: none;
+  font: 12px/1.4 var(--font-mono);
+  white-space: nowrap;
+}
+
+/* 说明文字是正文，可以换行 */
+.st-fan-desc {
+  flex: 1 1 240px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-faint);
+  text-wrap: pretty;
+}
+
+.st-fan-rpm {
+  flex: none;
+  min-width: 9ch;
+  font: 600 15px/1 var(--font-serif);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.st-fan-err {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--danger);
+}
+
+/* 滑杆：一条墨线轨道 + 锈红方块游标（可拖动，所以用锈红） */
+.st-range {
+  flex: 1 1 220px;
+  min-width: 160px;
+  height: 20px;
+  margin: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+}
+
+.st-range::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--rule-strong);
+}
+
+.st-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 10px;
+  height: 18px;
+  margin-top: -8px;
+  border: 0;
+  background: var(--rust);
+}
+
+.st-range:disabled {
+  cursor: default;
+}
+
+.st-range:disabled::-webkit-slider-runnable-track {
+  background: var(--rule-soft);
+}
+
+.st-range:disabled::-webkit-slider-thumb {
+  background: var(--ink-ghost);
+}
+
+.st-range:focus-visible {
+  outline-offset: 4px;
+}
+
+/* ── 模块网格 ─────────────────────────────────────────────────────── */
+.st-health .fig small {
+  color: var(--ink-faint);
+}
+
+.st-health-msg {
+  margin-top: 12px;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.st-health-up {
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+/* ── 进程全表 ─────────────────────────────────────────────────────── */
+/* 点 | 图标+名称 | PID | CPU 条+数 | 能耗 | 内存 */
+.st-proc {
+  grid-template-columns:
+    auto minmax(0, 2.6fr) minmax(48px, 0.6fr) minmax(104px, 1.3fr)
+    minmax(48px, 0.5fr) minmax(76px, 0.8fr);
+}
+
+.st-proc-row {
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.st-proc-row:hover {
+  background: var(--hover);
+}
+
+.st-proc-row:hover .ell {
+  color: var(--rust);
+}
+
+/* 表头排序：当前列锈红，其余次墨，悬停变锈红 */
+.st-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: inherit;
+  letter-spacing: inherit;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+button.st-sort {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: none;
+}
+
+.st-sort.on,
+button.st-sort:hover:not(:disabled) {
+  color: var(--rust);
+}
+
+.st-sort-idle {
+  color: var(--ink-ghost);
+}
+
+.st-sort-chev {
+  transition: transform var(--motion-fast) var(--ease-standard);
+}
+
+.st-sort-chev.ascending {
+  transform: rotate(180deg);
+}
+
+.st-dot {
+  position: relative;
+  top: -2px;
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ok);
+}
+
+.st-dot.hot {
+  background: var(--danger);
+}
+
+.st-dot.idle {
+  background: var(--ink-ghost);
+}
+
+/* 名称列里的图标：真实图标或首字母方块，和文字基线对齐 */
+.st-icon {
+  position: relative;
+  top: 0;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  border-radius: var(--radius-sm);
+  vertical-align: -3px;
+}
+
+.st-icon.big {
+  top: 0;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  border-radius: 7px;
+  font-size: 15px;
+}
+
+.st-cpu {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.st-mini {
+  align-self: center;
+  flex: 0 1 60px;
+  min-width: 16px;
+  height: 6px;
+  background: var(--wash-1);
+}
+
+.st-mini > i {
+  display: block;
+  height: 100%;
+  background: var(--wash-5);
+}
+
+.st-cpu .num {
+  flex: none;
+  min-width: 5ch;
+}
+
+/* 页脚一行：系统版本 · 主机名 */
+.st-page .colophon {
+  margin-top: 22px;
+  text-align: center;
+  font: 11px/1.4 var(--font-mono);
+  color: var(--ink-faint);
+}
+
+/* ── 骨架屏 ───────────────────────────────────────────────────────── */
+.st-skel {
+  height: 12px;
+  background: var(--wash-1);
+  animation: st-skel-pulse 1.4s ease-in-out infinite;
+}
+
+.st-skel-body {
+  padding-top: 22px;
+}
+
+@keyframes st-skel-pulse {
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ── 进程详情弹窗 ─────────────────────────────────────────────────── */
+.st-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  background: rgba(38, 36, 31, 0.36);
+}
+
+.st-sheet {
+  width: min(620px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 22px 28px 20px;
+  background: var(--paper);
+  border-top: 2.5px solid var(--rule-strong);
+  box-shadow: 0 18px 40px rgba(38, 36, 31, 0.22);
+}
+
+.st-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.st-sheet-head .title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.st-close {
+  align-self: flex-start;
+  font-size: 13px;
+}
+
+.st-close:hover {
+  color: var(--rust);
+}
+
+.st-sheet-meta {
+  margin-top: 12px;
+}
+
+.st-chain {
+  margin-top: 2px;
+  color: var(--ink-soft);
+}
+
+.st-chain-self {
+  color: var(--ink);
+}
+
+/* 键值行：标签定宽列 + 值（长路径可以断行） */
+.st-kv {
+  margin-top: 14px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+.st-kv-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 110px) minmax(0, 1fr);
+  column-gap: 14px;
+  align-items: baseline;
+  padding: 6px 0;
+  border-bottom: 1px dotted var(--leader);
+  font-size: 12.5px;
+}
+
+.st-kv-row .k {
+  font: 11px/1.6 var(--font-mono);
+  letter-spacing: 1px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.st-kv-row .v {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.st-kv-row .badge {
+  margin-left: 6px;
+}
+
+.st-kv-cmd {
+  border-bottom: 0;
+}
+
+.st-cmd {
+  display: block;
+  padding: 8px 10px;
+  background: var(--wash-1);
+  font: 11px/1.7 var(--font-mono);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.st-sheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule-strong);
+}
+
+/* ── 断点 ───────────────────────────────────────────────────────────
+   ≤980px：网格两栏。健康度改成横贯全宽的一条摘要（分数 | 说明 | 运行时长），
+   这样两栏网格里不会剩下半行空白。 */
+@media (max-width: 980px) {
+  .st-health {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 28px;
+    padding-bottom: 18px;
+  }
+
+  .st-health .kick {
+    grid-column: 1 / -1;
+  }
+
+  .st-health-msg {
+    margin-top: 0;
+    padding-left: 28px;
+    border-left: 1px solid var(--rule-soft);
+  }
+
+  .st-health-up {
+    margin-top: 0;
+  }
+}

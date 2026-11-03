@@ -1,0 +1,512 @@
+/* Tidy — 清理（frontpage 首页、扫描/执行进度卡、账目预览、确认框、完成页）.
+   Builds on the shared primitives in tabloid.css; only this view's own
+   layout lives here. The front page and the progress card are shared with
+   优化 / 分析, and the confirm sheet and execution card with 软件, so their
+   rules are not scoped to a route. */
+
+/* ── 首页 (frontpage.ts) ─────────────────────────────────────────── */
+/* Ticker figures never wrap; a long timestamp ellipsizes inside its cell. */
+.front-band .tick-v {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.front-lead {
+  padding-bottom: 28px;
+}
+
+.front-headline {
+  margin-top: 4px;
+}
+
+/* The note beside the CTA may carry a forced line break (optimize's ETA). */
+.front-action-note {
+  max-width: 280px;
+  white-space: pre-line;
+  text-align: left;
+}
+
+button.front-action-note {
+  font: 11.5px/1.6 var(--font-mono);
+}
+
+.front-note .prose {
+  color: var(--ink);
+}
+
+/* ── 进度卡 (scancard.ts)：带框线的模块，不用阴影 ─────────────────── */
+.scan-stage .scan-card {
+  margin: 28px 0 0;
+  padding: 0 0 24px;
+  border: 0;
+}
+
+.scan-stage .folio + .scan-card {
+  margin-top: 18px;
+}
+
+.scan-card .kick .aside {
+  font-variant-numeric: tabular-nums;
+}
+
+.scan-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+
+.scan-heading .headline {
+  min-width: 0;
+}
+
+/* Icon inside a spinning hairline ring. */
+.scan-icon {
+  position: relative;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  color: var(--ink);
+}
+
+.scan-spinner {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid var(--wash-2);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: scan-spin 0.9s linear infinite;
+}
+
+@keyframes scan-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 路径行：标签 | 路径（头部省略，尾部始终可见） */
+.pathline {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: baseline;
+  column-gap: 14px;
+  margin-top: 20px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule-soft);
+  font: 11px/1.4 var(--font-mono);
+  color: var(--ink-faint);
+}
+
+.scan-folder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scan-folder svg {
+  position: relative;
+  top: 2px;
+}
+
+.path-full {
+  display: flex;
+  min-width: 0;
+  font: 12.5px/1.4 var(--font-mono);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* pre: the split may fall on a space ("Application Support"), which a
+   flex item would otherwise drop at its edge. */
+.path-full .head,
+.path-full .tail {
+  white-space: pre;
+}
+
+.path-full .head {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.path-full .tail {
+  flex: none;
+}
+
+/* Activity track: a sweeping segment, or a fill when progress is known. */
+.scan-track {
+  position: relative;
+  height: 4px;
+  overflow: hidden;
+  background: var(--wash-2);
+}
+
+.scan-track span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 34%;
+  background: var(--ink);
+  animation: scan-sweep 1.6s var(--ease-standard) infinite;
+}
+
+.scan-track.determinate span {
+  width: 0;
+  animation: none;
+  transition: width var(--motion-base) var(--ease-standard);
+}
+
+@keyframes scan-sweep {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(300%);
+  }
+}
+
+.scan-stats .ticker {
+  --cell: 150px;
+}
+
+.scan-stats .tick-v {
+  font-variant-numeric: tabular-nums;
+}
+
+.scan-foot {
+  flex-wrap: nowrap;
+  align-items: baseline;
+}
+
+.scan-foot .scan-hint {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-wrap: pretty;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-spinner,
+  .scan-track:not(.determinate) span {
+    animation: none;
+  }
+
+  .scan-track:not(.determinate) span {
+    left: 33%;
+  }
+}
+
+/* ── 账目预览 (flow.ts renderPreview) ──────────────────────────────── */
+.flow-ledger .databox .fig,
+.flow-done .databox .fig {
+  font-variant-numeric: tabular-nums;
+}
+
+.databox .cell.lede .note {
+  margin-top: 8px;
+}
+
+/* Under the "to be freed" figure: how much of the full reclaimable total the
+   current selection covers. The meter width is set by flow.ts. */
+.flow-ledger .sel-share {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.flow-ledger .sel-share .meter > i {
+  width: 0;
+  background: var(--rust);
+  transition: width var(--motion-base) var(--ease-standard);
+}
+
+/* Project git blockers: report-only badges that wrap as whole chips. */
+.note-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.note-list .badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flow-ledger .pair {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.flow-ledger .pair > * {
+  white-space: nowrap;
+}
+
+/* 分类行：复选框 | 名称 + 说明（截断）| 大小 | 展开 */
+.sec {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  column-gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px dotted var(--leader);
+}
+
+.sec-main {
+  min-width: 0;
+}
+
+.sec-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.sec-title b {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+.sec-title .cnt {
+  flex: none;
+  font: 11.5px/1.4 var(--font-mono);
+  color: var(--ink-faint);
+}
+
+.sec-desc {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sec-size {
+  font: 13px/1.4 var(--font-mono);
+  white-space: nowrap;
+  text-align: right;
+}
+
+.sec-size .of {
+  color: var(--ink-faint);
+}
+
+/* The chevron rotates as a whole so both states keep one stroke geometry. */
+/* No text inside, so the button's baseline is the svg's bottom edge: the
+   chevron sits on the row's first text line. */
+.sec .chev {
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.sec .chev svg {
+  display: block;
+  transition: transform var(--motion-base) var(--ease-standard);
+}
+
+.sec .chev.open svg {
+  transform: rotate(180deg);
+}
+
+.sec .chev:hover {
+  color: var(--rust);
+}
+
+/* 展开的明细：缩进一格，淡底 */
+.sec-items {
+  padding: 2px 0 6px 26px;
+  border-bottom: 1px dotted var(--leader);
+  background: rgba(38, 36, 31, 0.025);
+}
+
+.sec-items[hidden] {
+  display: none;
+}
+
+/* 明细行：复选框 | 名称 + 路径 | 项数 · 标签 | 大小 | ↗
+   Flex, not a fixed grid: a row may carry no badge or several, and both the
+   path and the badges give way (ellipsis) before the size or ↗ ever do. */
+.item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 10px 6px 0;
+  border-bottom: 1px dotted var(--rule-soft);
+}
+
+.item:last-child {
+  border-bottom: 0;
+}
+
+.item-main {
+  display: flex;
+  flex: 1 1 220px;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.item-main b {
+  flex: 0 1 auto;
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.item-main .path {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 11px/1.4 var(--font-mono);
+  color: var(--ink-faint);
+}
+
+.item-meta {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.item-meta .num {
+  flex: none;
+  font-size: 11.5px;
+}
+
+.item-meta .badge {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.item .isize {
+  flex: none;
+  min-width: 56px;
+  font-size: 12px;
+}
+
+.item .reveal {
+  flex: none;
+}
+
+.item .reveal:hover {
+  color: var(--rust-dark);
+}
+
+.tr.sum .foot-size {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* ── 确认框 (flow.ts confirmSheet) ─────────────────────────────────── */
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(38, 36, 31, 0.36);
+}
+
+.confirm-sheet {
+  width: min(460px, 100%);
+  padding: 22px 26px 20px;
+  background: var(--paper);
+  border-top: 2.5px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.confirm-sheet .title {
+  font-size: 22px;
+}
+
+.confirm-sub {
+  margin-top: 8px;
+}
+
+.confirm-note {
+  margin-top: 14px;
+  padding-left: 10px;
+  border-left: 2px solid var(--warn);
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--warn);
+  text-wrap: pretty;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 22px;
+  margin-top: 22px;
+}
+
+.confirm-actions .link {
+  font-size: 13px;
+}
+
+/* ── 完成页 (flow.ts runExecution) ─────────────────────────────────── */
+.done-stats {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 0;
+}
+
+.done-stats > span {
+  white-space: nowrap;
+}
+
+/* Trash mode: freed only once the Trash is emptied (clean.ts). */
+.trash-pending {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 16px;
+  margin-top: 12px;
+}
+
+.trash-pending .prose {
+  flex: 1 1 240px;
+  min-width: 0;
+  text-align: left;
+}
+
+.trash-pending .link {
+  font-size: 13px;
+}
+
+.exec-problems {
+  margin-top: 0;
+}
+
+/* Lone modules (no grid around them) align with the page edges. */
+.flow-failed,
+.flow-empty .mod {
+  margin: 18px 0 0;
+  padding: 0 0 24px;
+  border: 0;
+}
+
+.flow-failed .prose {
+  max-width: 640px;
+}

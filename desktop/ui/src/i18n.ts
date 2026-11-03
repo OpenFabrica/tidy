@@ -445,6 +445,9 @@ const DICT: Record<Lang, Record<string, string>> = {
     "flow.exec.freed": "已释放",
     "flow.exec.hint": "逐项删除，每一项删除前都会再校验一次；需要管理员权限的项目可能弹出系统授权",
     "flow.problems": "未处理 {n} 项",
+    "flow.col.path": "路径",
+    "flow.col.size": "大小",
+    "flow.col.reason": "原因",
     "flow.why.whitelisted": "在白名单里，已跳过",
     "flow.why.rejected": "安全规则不允许删除",
     "flow.why.admin": "需要管理员权限，但辅助程序不可用",
@@ -462,6 +465,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     "flow.adminhint": "需要系统授权",
 
     "front.note": "编者按",
+    "front.lead": "头条",
 
     "clean.strapline": "只清可再生文件 · 全程可预览",
     "clean.headline": "今天的磁盘，<br>值得一次<em>彻底</em>的整理。",
@@ -478,7 +482,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     "opt.neverRun": "尚未运行过维护",
     "opt.stat.eta": "预计用时",
     "opt.times": "{n} 次",
-    "opt.standfirst": "维护只有六项：可清除空间、索引、缓存与维护脚本，每一项都有明确边界。我们不做“深度加速”——那些奇迹，通常以稳定性为代价。",
+    "opt.standfirst": "维护只做四类事：可清除空间、索引、缓存与维护脚本，每一项都有明确边界。我们不做“深度加速”——那些奇迹，通常以稳定性为代价。",
 
     "ana.strapline": "逐层统计 · 按大小排出账目",
     "ana.headline": "每一 GB，<br>都该有<em>去向</em>可查。",
@@ -504,6 +508,8 @@ const DICT: Record<Lang, Record<string, string>> = {
     "clean.stat.daysAgo": "{d} 天前",
 
     "prev.available": "本期可回收",
+    "prev.willFree": "本次将释放",
+    "prev.ofTotal": "共可回收 {size}",
     "prev.lede": "以下各类均为可安全移除的文件。清理不触碰文稿与应用数据。",
     "prev.accounts": "清理账目",
     "prev.subtotal": "小计",
@@ -519,6 +525,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     "opt.stat.last": "上次维护",
     "opt.stat.done": "已完成任务",
     "opt.listTitle": "例行维护 · {n} 项",
+    "opt.listKick": "任务清单",
     "opt.runSelected": "执行已选 {n} 项",
     "opt.chosen": "已选 · 取消",
     "opt.add": "加入本次",
@@ -538,6 +545,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     "ana.railUnscanned": "尚未扫描 · 进入后统计",
     "ana.viewTreemap": "图形视图",
     "ana.viewLedger": "账目视图",
+    "ana.ledgerKick": "本层账目",
 
     "st.proc.byCpu": "进程 · 按 CPU",
     "st.proc.byMem": "进程 · 按内存",
@@ -554,6 +562,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     "apps.removeNote": "卸载包含以上全部残留；展开下方明细可以逐项取消。",
     "apps.detail.files": "逐项明细 · {n} 个文件",
     "apps.selectedN": "已选 {n} 项",
+    "apps.dossier": "档案",
     "apps.watch": "建议关注",
     "apps.watch.sub": "占用最多空间的 {n} 个应用，合计 {size}",
     "apps.watch.note": "Tidy 无法读取应用的最近使用时间，因此这里只按体积排序，不做“很久没用”的推断。",
@@ -1181,6 +1190,9 @@ const DICT: Record<Lang, Record<string, string>> = {
     "flow.exec.freed": "Freed",
     "flow.exec.hint": "Items are removed one by one and re-checked just before removal; items that need admin rights may ask for system authorization",
     "flow.problems": "{n} items not removed",
+    "flow.col.path": "Path",
+    "flow.col.size": "Size",
+    "flow.col.reason": "Reason",
     "flow.why.whitelisted": "Whitelisted, skipped",
     "flow.why.rejected": "Blocked by the safety policy",
     "flow.why.admin": "Needs admin rights, but the helper is unavailable",
@@ -1198,6 +1210,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     "flow.adminhint": "needs system authorization",
 
     "front.note": "From the editors",
+    "front.lead": "Lead story",
 
     "clean.strapline": "Regenerable files only · fully previewable",
     "clean.headline": "Your disk deserves<br>one <em>proper</em> tidy today.",
@@ -1214,7 +1227,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     "opt.neverRun": "No maintenance run yet",
     "opt.stat.eta": "Estimated time",
     "opt.times": "{n}",
-    "opt.standfirst": "Maintenance is six tasks and no more: purgeable space, indexes, caches and upkeep scripts, each with a clear boundary. We do not do \"deep boosts\" — those miracles are usually paid for in stability.",
+    "opt.standfirst": "Maintenance covers four kinds of work and no more: purgeable space, indexes, caches and upkeep scripts, each with a clear boundary. We do not do \"deep boosts\" — those miracles are usually paid for in stability.",
 
     "ana.strapline": "Level by level · ranked as an account",
     "ana.headline": "Every gigabyte<br>should have a <em>address</em>.",
@@ -1240,6 +1253,8 @@ const DICT: Record<Lang, Record<string, string>> = {
     "clean.stat.daysAgo": "{d} days ago",
 
     "prev.available": "Reclaimable this issue",
+    "prev.willFree": "To be freed",
+    "prev.ofTotal": "{size} reclaimable in total",
     "prev.lede": "Every category below is safe to remove. Cleaning never touches your documents or app data.",
     "prev.accounts": "Clean accounts",
     "prev.subtotal": "Subtotal",
@@ -1255,6 +1270,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     "opt.stat.last": "Last maintenance",
     "opt.stat.done": "Tasks completed",
     "opt.listTitle": "Routine maintenance · {n} tasks",
+    "opt.listKick": "Task list",
     "opt.runSelected": "Run {n} selected",
     "opt.chosen": "Selected · remove",
     "opt.add": "Add to this run",
@@ -1274,6 +1290,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     "ana.railUnscanned": "Not scanned yet · enter to measure",
     "ana.viewTreemap": "Treemap view",
     "ana.viewLedger": "Ledger view",
+    "ana.ledgerKick": "This level",
 
     "st.proc.byCpu": "Processes · by CPU",
     "st.proc.byMem": "Processes · by memory",
@@ -1290,6 +1307,7 @@ const DICT: Record<Lang, Record<string, string>> = {
     "apps.removeNote": "Uninstalling includes every leftover above; expand the list below to untick individual files.",
     "apps.detail.files": "Item detail · {n} files",
     "apps.selectedN": "{n} selected",
+    "apps.dossier": "Dossier",
     "apps.watch": "Worth a look",
     "apps.watch.sub": "The {n} largest apps, {size} together",
     "apps.watch.note": "Tidy cannot read an app's last-used date, so this ranks by size only — it never guesses that something is \"unused\".",

@@ -1,30 +1,31 @@
 // The front page shared by the three idle screens (清理 / 优化 / 分析).
 //
-// Every section opens the same way in the reference: a kicker line with a
-// strapline on the far right, then a two-column spread — an outline numeral
-// bleeding off the top edge, a 70px display headline with one word in rust, a
-// ruled byline, the double-framed call to action with its running-time note,
-// and a "编者按" rail carrying a drop-capped standfirst over a three-row
-// ledger. Only the copy and the numbers differ per section, so the shell
-// lives here once.
+// Tabloid layout (redesign B): the newspaper character lives in the page
+// structure, not in giant type. A folio line (issue · strapline), a ticker
+// band carrying the section's ledger figures, then a module grid: the lead
+// story (A1 — capped headline with one word in rust, ruled byline, the solid
+// call to action and its note) beside the "编者按" module with a drop cap.
+// Only the copy and the numbers differ per section, so the shell lives here
+// once.
 
 import { esc } from "./format";
 import { t } from "./i18n";
 
-/** One row of the rail's ledger; the last row is printed in rust. */
+/** One ledger figure; rendered as a cell of the ticker band. */
 export interface FrontStat {
   label: string;
   value: string;
 }
 
 export interface FrontPageOptions {
-  /** Rust mono line at the top left, e.g. "第 47 期 · 智能清理专栏". */
+  /** Folio line at the top left, e.g. "第 47 期 · 智能清理专栏". */
   kicker: string;
-  /** Muted mono line at the top right. */
+  /** Muted folio line at the top right. */
   strapline: string;
-  /** Outline numeral bleeding off the top edge; "" prints nothing. */
+  /** Kept for API compatibility. The tabloid layout prints no plate
+   * numeral: the issue number already lives in the folio. */
   watermark: string;
-  /** The analyze page's numeral is wider, so its geometry is smaller. */
+  /** Kept for API compatibility (watermark geometry); ignored. */
   watermarkWide?: boolean;
   /** Display headline. Wrap the accented word in <em> — it turns rust. */
   headlineHtml: string;
@@ -40,10 +41,39 @@ export interface FrontPageOptions {
   actionNote: string;
   /** Makes that note clickable (analyze uses it to reopen a cached result). */
   onActionNote?: () => void;
-  /** Standfirst prose. Its first character is lifted into the drop cap. */
+  /** Standfirst prose. Its first character is set as the drop cap. */
   noteBody: string;
-  /** Three ledger rows under the standfirst. */
+  /** Ledger figures shown in the ticker band under the folio. */
   stats: FrontStat[];
+}
+
+/**
+ * The section's page letter (A 清理, C 优化, D 分析…), read from the active
+ * masthead tab so module codes (A1, A2…) always match the tab's page code
+ * without every caller passing it. Falls back to "A" before the masthead
+ * exists.
+ */
+export function pageLetter(): string {
+  const pg = document.querySelector(".mast-tab.on .pg")?.textContent?.trim() ?? "";
+  return /^[A-Z]/.test(pg) ? pg[0] : "A";
+}
+
+/** Module eyebrow: page code, title (may be empty) and an optional aside. */
+export function kickHtml(n: number, title: string, asideHtml = ""): string {
+  return `<div class="kick"><span class="code">${pageLetter()}${n}</span><span class="t">${esc(
+    title,
+  )}</span>${asideHtml}</div>`;
+}
+
+/**
+ * A ledger value as a serif figure: "8.42GB" → 8.42 + small "GB",
+ * "14 天前" → 14 + small "天前". Values whose tail still carries digits
+ * (a timestamp such as "11月3日 20:56") or that start with a word stay whole.
+ */
+export function figureHtml(value: string): string {
+  const m = /^([\d][\d.,]*)\s*(\D*)$/.exec(value);
+  if (!m || !m[2]) return esc(value);
+  return `${esc(m[1])}<small>${esc(m[2])}</small>`;
 }
 
 /**
@@ -54,55 +84,53 @@ export function renderFrontPage(
   container: HTMLElement,
   opts: FrontPageOptions,
 ): HTMLButtonElement {
-  // The drop cap is the standfirst's first character set at 54px; the rest of
-  // the paragraph flows around it, exactly like the reference.
-  const [dropCap, ...rest] = [...opts.noteBody];
+  // A missing key comes back verbatim from t(); the lead module then shows
+  // only its page code instead of a raw key.
+  const leadTitle = t("front.lead") === "front.lead" ? "" : t("front.lead");
 
   container.innerHTML = `
-    <div class="front">
-      <div class="front-head">
-        <span class="kicker">${esc(opts.kicker)}</span>
-        <span class="strapline">${esc(opts.strapline)}</span>
+    <div class="page front">
+      <div class="folio">
+        <span class="issue">${esc(opts.kicker)}</span>
+        <span>${esc(opts.strapline)}</span>
       </div>
-      <div class="front-body">
-        ${
-          opts.watermark
-            ? `<div class="front-watermark ${opts.watermarkWide ? "wide" : ""}" aria-hidden="true">${esc(
-                opts.watermark,
-              )}</div>`
-            : ""
-        }
-        <div class="front-lead">
-          <h1 class="front-headline">${opts.headlineHtml}</h1>
+      ${
+        opts.stats.length > 0
+          ? `<section class="band front-band">
+              <div class="ticker">
+                ${opts.stats
+                  .map(
+                    (stat) => `<div class="tick">
+                      <div class="tick-k">${esc(stat.label)}</div>
+                      <div class="tick-v">${figureHtml(stat.value)}</div>
+                    </div>`,
+                  )
+                  .join("")}
+              </div>
+            </section>`
+          : ""
+      }
+      <div class="grid front-grid">
+        <article class="mod span-2 front-lead">
+          ${kickHtml(1, leadTitle)}
+          <h1 class="headline front-headline">${opts.headlineHtml}</h1>
           <div class="byline">
-            <span class="byline-rule"></span>
-            <span class="byline-desk">${esc(opts.desk)}</span>
-            <span class="byline-date">${esc(opts.dateline)}</span>
+            <span class="desk">${esc(opts.desk)}</span>
+            <span class="date">${esc(opts.dateline)}</span>
           </div>
           ${opts.extraHtml ?? ""}
-          <div class="front-action">
-            <button class="frame-cta double" id="front-action">${esc(opts.action)} →</button>
+          <div class="act-row front-action">
+            <button class="btn lg" id="front-action">${esc(opts.action)} →</button>
             ${
               opts.onActionNote
-                ? `<button class="front-action-note link" id="front-action-note">${esc(opts.actionNote)}</button>`
-                : `<span class="front-action-note">${esc(opts.actionNote)}</span>`
+                ? `<button class="front-action-note note link plain" id="front-action-note">${esc(opts.actionNote)}</button>`
+                : `<span class="front-action-note note">${esc(opts.actionNote)}</span>`
             }
           </div>
-        </div>
-        <aside class="front-note">
-          <span class="front-note-title">${t("front.note")}</span>
-          <p class="standfirst"><span class="dropcap">${esc(dropCap ?? "")}</span>${esc(rest.join(""))}</p>
-          <div class="front-ledger">
-            ${opts.stats
-              .map(
-                (stat, idx) => `<div class="led">
-                  <span class="front-stat-label">${esc(stat.label)}</span>
-                  <span class="dots"></span>
-                  <span class="amt ${idx === opts.stats.length - 1 ? "lead" : ""}">${esc(stat.value)}</span>
-                </div>`,
-              )
-              .join("")}
-          </div>
+        </article>
+        <aside class="mod span-all-narrow front-note">
+          ${kickHtml(2, t("front.note"))}
+          <p class="prose dropcap">${esc(opts.noteBody)}</p>
         </aside>
       </div>
     </div>`;

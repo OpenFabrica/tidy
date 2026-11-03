@@ -1,8 +1,8 @@
-/* Tidy design tokens — "newspaper ledger" skin.
+/* Tidy design tokens — tabloid skin (redesign B).
    The whole surface is a printed page: warm paper stock, ink-black rules,
    serif display numerals, monospaced marginalia, and a single rust-red
    accent that marks everything actionable. Keep these values aligned with
-   the high-fidelity reference (design/Tidy 高保真 报纸风.dc.html). */
+   the redesign reference (design/tidy-redesign/b/). */
 
 /* The reference's two faces ship with the app rather than loading from a CDN:
    the app's CSP is `default-src 'self'`, and a desktop tool must render the
@@ -103,9 +103,19 @@
   --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
 
   /* Page gutters: the masthead reserves room for the real traffic lights
-     (titleBarStyle: Overlay), the body keeps the reference's 48px margins. */
+     (titleBarStyle: Overlay). Everything below is fluid so the layout holds
+     from the 800px minimum window to the 1320px default: gutters run
+     ~24px → 48px, module padding ~16px → 24px. */
   --mast-lights: 78px;
-  --page-gutter: 48px;
+  --gutter: clamp(20px, 4.6vw - 13px, 48px);
+  --page-gutter: var(--gutter);
+  --mod-x: clamp(16px, 1.2vw + 8px, 24px);
+
+  /* Type scale. Headlines are capped low on purpose — the visual weight sits
+     on the serif numerals (figures and ticker values), which never wrap. */
+  --fs-headline: clamp(26px, 1.6vw + 14px, 40px);
+  --fs-figure: clamp(48px, 3vw + 24px, 72px);
+  --fs-tick: clamp(26px, 1.2vw + 16px, 36px);
 }
 
 /* One page stock for every tab: a newspaper does not change paper between

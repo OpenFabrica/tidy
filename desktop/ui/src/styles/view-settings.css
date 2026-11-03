@@ -1,0 +1,567 @@
+/* Tidy — 设置页、横幅（banner）、完全磁盘访问引导（fda-helper）.
+   Builds on the shared primitives in tabloid.css; only this view's own
+   layout lives here, plus the switch / segmented / quiet-link controls that
+   settings, the menu-bar dialogs and the status fan strip share. Those
+   controls are scoped to their containers so other views' copies never
+   collide with them. */
+
+/* ── 共用控件 ─────────────────────────────────────────────────────── */
+/* 开关：直角印刷框，开为锈红实心（可点击） */
+:is(.set-sheet, .mbset-dialog, .st-fan) .toggle {
+  position: relative;
+  flex: none;
+  width: 34px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--ink-soft);
+  border-radius: 0;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+:is(.set-sheet, .mbset-dialog, .st-fan) .toggle::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 12px;
+  height: 12px;
+  background: var(--ink-soft);
+  transition: transform var(--motion-base) var(--ease-standard);
+}
+
+:is(.set-sheet, .mbset-dialog, .st-fan) .toggle.on {
+  border-color: var(--rust);
+  background: var(--rust);
+}
+
+:is(.set-sheet, .mbset-dialog, .st-fan) .toggle.on::after {
+  background: var(--paper);
+  transform: translateX(16px);
+}
+
+:is(.set-sheet, .mbset-dialog, .st-fan) .toggle:hover:not(:disabled) {
+  border-color: var(--rust);
+}
+
+:is(.set-sheet, .mbset-dialog, .st-fan) .toggle:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* 分段选择：一排直角格子，当前值锈红底白字 */
+:is(.set-sheet, .mbset-dialog) .segmented {
+  display: inline-flex;
+  flex: none;
+  border: 1px solid var(--ink-soft);
+}
+
+:is(.set-sheet, .mbset-dialog) .segmented button {
+  padding: 4px 12px;
+  border: 0;
+  border-left: 1px solid var(--ink-soft);
+  border-radius: 0;
+  font: 11.5px/1.4 var(--font-mono);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+:is(.set-sheet, .mbset-dialog) .segmented button:first-child {
+  border-left: 0;
+}
+
+:is(.set-sheet, .mbset-dialog) .segmented button:hover:not(:disabled) {
+  color: var(--rust);
+}
+
+:is(.set-sheet, .mbset-dialog) .segmented button.on {
+  background: var(--rust);
+  color: var(--paper);
+}
+
+:is(.set-sheet, .mbset-dialog) .segmented button:disabled {
+  color: var(--ink-ghost);
+}
+
+/* 次要文字动作：下划线链接 */
+:is(.set-sheet, .mbset-dialog) .link-quiet {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  font-size: 12.5px;
+  color: var(--rust);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  white-space: nowrap;
+}
+
+:is(.set-sheet, .mbset-dialog) .link-quiet:hover:not(:disabled) {
+  color: var(--rust-dark);
+}
+
+:is(.set-sheet, .mbset-dialog) .link-quiet:disabled {
+  color: var(--ink-ghost);
+  text-decoration: none;
+}
+
+/* ── 设置页：居中的一张有框线的版面 ───────────────────────────────── */
+/* 报头双线已经是页顶的粗线，版面本身只在底部收一条墨线 */
+.set-sheet {
+  max-width: 760px;
+  margin: 6px auto 0;
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+/* 标题 + 栏目 Tab + 关闭，一行；Tab 不换行 */
+.set-head {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(16px, 2.4vw, 32px);
+  min-width: 0;
+  padding: 16px 0 0;
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.set-head .title {
+  flex: none;
+  padding-bottom: 10px;
+}
+
+.set-tabs {
+  display: flex;
+  flex: none;
+  gap: clamp(14px, 2vw, 24px);
+}
+
+.set-tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  flex: none;
+  padding-bottom: 9px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.set-tab .pg {
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: 0.5px;
+  color: var(--ink-faint);
+}
+
+.set-tab.on {
+  color: var(--rust);
+  font-weight: 600;
+  border-bottom-color: var(--rust);
+}
+
+.set-tab.on .pg {
+  color: var(--rust);
+}
+
+.set-close {
+  margin-left: auto;
+  align-self: center;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.set-close:hover {
+  color: var(--rust);
+}
+
+.set-section {
+  padding: 22px 0 6px;
+}
+
+.set-section .kick {
+  margin-bottom: 4px;
+}
+
+/* 一行设置：标题 + 说明（左，可换行）| 控件（右，不换行不收缩） */
+.set-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 28px;
+  padding: 14px 0;
+  border-bottom: 1px dotted var(--leader);
+}
+
+.set-row:last-child {
+  border-bottom: 0;
+}
+
+.set-text {
+  min-width: 0;
+}
+
+.set-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.set-desc {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-faint);
+  text-wrap: pretty;
+}
+
+.set-control {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.set-inline {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  white-space: nowrap;
+}
+
+/* 保护项目：标题、文本框、保存按钮上下排 */
+.set-row.set-stack {
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 10px;
+}
+
+.set-textarea {
+  display: block;
+  width: 100%;
+  min-height: 112px;
+  padding: 8px 10px;
+  border: 1px solid var(--rule-edge);
+  border-radius: 0;
+  background: var(--paper);
+  font: 12px/1.7 var(--font-mono);
+  color: var(--ink);
+  resize: vertical;
+}
+
+.set-textarea:focus {
+  outline: none;
+  border-color: var(--rust);
+}
+
+.set-warn {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 6px;
+  white-space: normal;
+}
+
+.set-paths {
+  font: 11.5px/1.8 var(--font-mono);
+  color: var(--ink-soft);
+}
+
+.num-field {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.num-field input[type="number"] {
+  width: 58px;
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+/* 检查更新结果 / 菜单栏读取失败：紧跟在对应行下面的一行小字。
+   有内容时它接管那一行的点线底边，免得点线横在标题和结果之间。 */
+.set-note {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.set-note:not(:empty) {
+  margin: 0;
+  padding: 0 0 12px;
+  border-bottom: 1px dotted var(--leader);
+}
+
+.set-row:has(+ .set-note:not(:empty)) {
+  padding-bottom: 6px;
+  border-bottom: 0;
+}
+
+.set-colophon {
+  padding: 10px 0 12px;
+  border-top: 1px solid var(--rule-soft);
+  font: 11px/1.6 var(--font-mono);
+  color: var(--ink-faint);
+}
+
+/* 窄窗口：Tab 排到标题下面一行，关闭按钮仍在标题右侧 */
+@media (max-width: 980px) {
+  .set-head {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .set-tabs {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .set-head .title {
+    padding-bottom: 4px;
+  }
+
+  .set-close {
+    margin-bottom: 0;
+  }
+}
+
+/* ── 横幅：报头双线下的一条通栏提示（遥测告知 / 新版本） ───────────── */
+/* 空的时候不占高度 */
+#banner:empty {
+  display: none;
+}
+
+/* 与 .page 同宽同边距；左侧锈红短竖线标出这是一条需要处理的提示 */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 10px max(var(--gutter), calc((100% - 1240px) / 2)) 0;
+  padding: 9px 10px 9px 14px;
+  border-left: 3px solid var(--rust);
+  border-bottom: 1px solid var(--rule-soft);
+  background: var(--wash-1);
+}
+
+.banner-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.6;
+  text-wrap: pretty;
+}
+
+/* 点线引导：把文案和右侧动作拉开 */
+.banner-rule {
+  flex: 1 1 12px;
+  min-width: 12px;
+  align-self: flex-end;
+  margin-bottom: 7px;
+  border-bottom: 1px dotted var(--leader);
+}
+
+.banner-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.banner-actions a {
+  font-size: 12px;
+  color: var(--rust);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.banner-actions button {
+  padding: 4px 12px;
+  background: var(--paper);
+}
+
+/* 主动作：锈红实心小按钮 */
+.banner-actions button.primary {
+  border-color: var(--rust);
+  background: var(--rust);
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.banner-actions button.primary:hover:not(:disabled) {
+  border-color: var(--rust-dark);
+  background: var(--rust-dark);
+  color: var(--paper);
+}
+
+.banner-actions button.primary:disabled {
+  border-color: var(--rust);
+  background: var(--rust);
+  color: var(--paper);
+  opacity: 0.7;
+}
+
+.banner-close {
+  flex: none;
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+button.banner-close {
+  padding: 2px 4px;
+  border: 0;
+  background: none;
+}
+
+/* 窄窗口：文案需要换行时点线只剩一小截，干脆不画，让文案占满 */
+@media (max-width: 980px) {
+  .banner-text {
+    flex: 1 1 auto;
+  }
+
+  .banner-rule {
+    display: none;
+  }
+}
+
+/* ── 完全磁盘访问引导：贴在系统设置窗口下方的一条小窗（≈460–700×150） ── */
+.fda-helper-body {
+  background: var(--paper);
+}
+
+.fda-helper-body #app {
+  height: 100vh;
+}
+
+.fda-helper {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  height: 100%;
+  padding: 0 18px 0 22px;
+  border-top: 2.5px solid var(--rule-strong);
+  color: var(--ink);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.fda-stage {
+  position: relative;
+  flex: none;
+  width: 150px;
+  height: 104px;
+  cursor: grab;
+}
+
+.fda-stage:active {
+  cursor: grabbing;
+}
+
+.fda-app-icon,
+.fda-app-ghost {
+  position: absolute;
+  left: 4px;
+  top: 20px;
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+}
+
+/* 半透明的副本从图标飘到列表目标行，循环演示拖动 */
+.fda-app-ghost {
+  opacity: 0;
+  pointer-events: none;
+  animation: fda-drag 2.6s ease-in-out infinite;
+}
+
+@keyframes fda-drag {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  60% {
+    transform: translate(72px, -6px) scale(0.55);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translate(72px, -6px) scale(0.5);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0;
+  }
+}
+
+/* 系统设置列表的示意：三行灰条，目标行在副本到达时变成锈红 */
+.fda-list {
+  position: absolute;
+  right: 4px;
+  top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 58px;
+  padding-top: 6px;
+  border-top: 1px solid var(--rule-strong);
+}
+
+.fda-list span {
+  height: 12px;
+  background: var(--wash-2);
+}
+
+.fda-list span.target {
+  border: 1px dashed var(--rust);
+  background: transparent;
+  animation: fda-target 2.6s ease-in-out infinite;
+}
+
+@keyframes fda-target {
+  0%,
+  50% {
+    background: transparent;
+  }
+  60%,
+  72% {
+    background: rgba(164, 67, 44, 0.3);
+  }
+  80%,
+  100% {
+    background: transparent;
+  }
+}
+
+.fda-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.fda-title {
+  font: 600 16px/1.45 var(--font-serif);
+  text-wrap: balance;
+}
+
+.fda-sub {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-soft);
+}
+
+.fda-helper .chev {
+  align-self: flex-start;
+  margin-top: 14px;
+  font-size: 13px;
+}
+
+.fda-helper .chev:hover {
+  color: var(--rust);
+}

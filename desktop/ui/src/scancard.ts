@@ -1,8 +1,7 @@
 // Progress card shared by every long-running surface (Clean's scan, Analyze's
-// walk, Optimize's task run): an icon inside a spinning ring, the item being
-// worked on, an activity bar, three live counters and an optional cancel
-// button. Layout and motion follow MangoDisk's operation-progress card,
-// re-inked in the newspaper palette. By default the counters come from the
+// walk, Optimize's task run): a ruled tabloid module with the stage, an icon
+// inside a spinning ring beside the headline, the item being worked on, an
+// activity bar, three live counters and an optional cancel link. By default the counters come from the
 // backend's process-wide scan meter, polled — not pushed — so every parallel
 // scan feeds one display without each IPC command growing its own progress
 // channel; surfaces that walk no files turn the meter off and set the first
@@ -11,6 +10,7 @@
 import { scanMeter } from "./ipc";
 import { esc, humanBytes } from "./format";
 import { t } from "./i18n";
+import { pageLetter } from "./frontpage";
 import type { ScanMeter } from "./types";
 
 /** Lucide icons (ISC), drawn at the ring's centre. */
@@ -45,6 +45,9 @@ const PATH_TAIL = 24;
 export interface ScanCardOptions {
   /** Home dir for ~-abbreviated paths. */
   home?: string;
+  /** Optional folio line above the module (e.g. the clean issue number);
+   * omitted = no folio. */
+  folio?: string;
   /** Omit for work that cannot be cancelled: the button is not drawn. */
   onCancel?: () => void;
   icon?: keyof typeof ICONS;
@@ -79,40 +82,45 @@ export interface ScanCard {
   stop(): void;
 }
 
-/** Render the progress card into `host` and start its live counters. */
+/** Render the progress card into `host` and start its live counters. The
+ * card is one ruled module (redesign B): eyebrow with stage and clock, the
+ * capped headline, the path line, the activity track, a boxed ticker of
+ * three counters, then cancel and the hint. */
 export function renderScanCard(host: HTMLElement, opts: ScanCardOptions): ScanCard {
   const title = opts.title ?? t("scan.title");
   const useMeter = opts.meter !== false;
+  const stage = opts.stage ?? t("scan.stage");
   host.innerHTML = `
-    <div class="scan-stage">
-      <section class="scan-card" aria-busy="true" aria-label="${esc(title)}">
-        <div class="scan-heading">
-          <span class="scan-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[opts.icon ?? "broom"]}</svg><i class="scan-spinner"></i></span>
-          <div class="scan-heading-text">
-            <span class="scan-stage-label">${esc(opts.stage ?? t("scan.stage"))}</span>
-            <h2>${esc(title)}</h2>
-          </div>
+    <div class="page scan-stage">
+      ${opts.folio ? `<div class="folio"><span class="issue">${esc(opts.folio)}</span></div>` : ""}
+      <section class="mod scan-card" aria-busy="true" aria-label="${esc(title)}">
+        <div class="kick">
+          <span class="code">${pageLetter()}1</span>
+          <span class="t scan-stage-label">${esc(stage)}</span>
+          <span class="aside" data-scan="clock-inline"></span>
         </div>
-        <div class="scan-path-card">
-          <span class="scan-folder"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${LEAD_ICONS[useMeter ? "folder" : "wrench"]}</svg></span>
-          <span class="scan-path-content">
-            <small class="scan-path-meta">
-              <span>${esc(opts.pathLabel ?? t("scan.current"))}</span>
-              <span data-scan="clock-inline"></span>
-            </small>
-            <strong class="scan-path-line" data-scan="path" title="">
-              <span class="head"></span><span class="tail">${esc(t("scan.preparing"))}</span>
-            </strong>
+        <div class="scan-heading">
+          <span class="scan-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[opts.icon ?? "broom"]}</svg><i class="scan-spinner"></i></span>
+          <h1 class="headline">${esc(title)}</h1>
+        </div>
+        <div class="pathline">
+          <span class="scan-folder nowrap"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${LEAD_ICONS[useMeter ? "folder" : "wrench"]}</svg>${esc(opts.pathLabel ?? t("scan.current"))}</span>
+          <span class="path-full scan-path-line" data-scan="path" title="">
+            <span class="head"></span><span class="tail">${esc(t("scan.preparing"))}</span>
           </span>
         </div>
         <div class="scan-track"><span></span></div>
-        <div class="scan-stats">
-          <span><small data-scan="label0">${esc(t("scan.items"))}</small><strong data-scan="items">0</strong></span>
-          <span><small data-scan="label1">${esc(t("scan.bytes"))}</small><strong data-scan="bytes">0B</strong></span>
-          <span><small>${esc(t("scan.elapsed"))}</small><strong data-scan="clock"></strong></span>
+        <div class="band boxed scan-stats">
+          <div class="ticker">
+            <div class="tick"><div class="tick-k" data-scan="label0">${esc(t("scan.items"))}</div><div class="tick-v" data-scan="items">0</div></div>
+            <div class="tick"><div class="tick-k" data-scan="label1">${esc(t("scan.bytes"))}</div><div class="tick-v" data-scan="bytes">0B</div></div>
+            <div class="tick"><div class="tick-k">${esc(t("scan.elapsed"))}</div><div class="tick-v" data-scan="clock"></div></div>
+          </div>
         </div>
-        <p class="scan-hint">${esc(opts.hint ?? t("scan.hint"))}</p>
-        ${opts.onCancel ? `<button class="scan-cancel" type="button">${esc(t("flow.cancel"))}</button>` : ""}
+        <div class="act-row scan-foot">
+          ${opts.onCancel ? `<button class="scan-cancel link" type="button">${esc(t("flow.cancel"))}</button>` : ""}
+          <p class="note scan-hint">${esc(opts.hint ?? t("scan.hint"))}</p>
+        </div>
       </section>
     </div>`;
 

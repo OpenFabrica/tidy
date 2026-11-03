@@ -29,6 +29,13 @@ cd desktop && cargo clippy --workspace -- -D warnings
 cd desktop/ui && npm run build
 ```
 
+Browser preview without Tauri: `cd desktop/ui && npx vite`, then open
+`http://localhost:5173/mock/index.html#/clean` (or `#/apps`, `#/status`, …).
+`ui/mock/` fakes the Tauri bridge; each area's data lives in
+`ui/mock/fixtures/<area>.ts`, and `?scene=<name>` switches fixture scenarios.
+It is never part of the production build. UI layout must hold from the
+800px minimum window to the 1320px default: check both widths.
+
 Rust stable and Node 20+ are required. Use `npm ci` for CI-like frontend
 installs. Do not commit generated `ui/dist/` output or local dependency trees.
 

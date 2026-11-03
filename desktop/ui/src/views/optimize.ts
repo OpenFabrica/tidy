@@ -1,13 +1,13 @@
 // Optimize view (newspaper skin): a "routine maintenance" column. The idle
-// page is a typographic hero; running the check opens the numbered six-item
-// grid from the reference — pick the tasks for this issue, run them
+// page is the shared front page; running the check opens the numbered task
+// grid (tabloid modules that reflow by width) — pick the tasks for this issue, run them
 // SEQUENTIALLY, and watch the shared progress card. Admin tasks are skipped
 // up front when the privileged helper is unavailable. The right rail prints
 // the maintenance log, which comes from this machine's own past runs.
 
 import { appMeta, listOptimizeTasks, runOptimize } from "../ipc";
 import { track } from "../telemetry";
-import { esc } from "../format";
+import { esc, splitUnit } from "../format";
 import { renderFrontPage } from "../frontpage";
 import { renderScanCard } from "../scancard";
 import {
@@ -72,7 +72,9 @@ function renderIdle(container: HTMLElement, tasks: OptimizeTask[], helper: boole
     gate.className = "front-action-note";
     gate.style.maxWidth = "none";
     gate.textContent = t("opt.helper");
-    container.querySelector(".front-lead")!.append(gate);
+    // The front page markup belongs to frontpage.ts; fall back to the action's
+    // row if its lead column is ever renamed, rather than throwing.
+    (container.querySelector(".front-lead") ?? start.parentElement)?.append(gate);
   }
 
   start.addEventListener("click", () => {
@@ -87,13 +89,17 @@ function countNumeral(n: number): string {
   return t("opt.numerals") === "cjk" && n <= 10 ? cjk[n] : String(n);
 }
 
-/** The six-item grid: numbered tasks in two columns plus the log rail. */
+/** Task list spread: ticker band of the run's figures, the numbered task
+ * grid (reflows from three columns to one), and the maintenance-log module. */
 function renderChecklist(container: HTMLElement, tasks: OptimizeTask[]): void {
   // Anything not run in the last day is part of this issue by default; a task
   // that already ran today is offered as an opt-in instead.
   const chosen = new Set(
     tasks.filter((task) => !ranRecently(task.id)).map((task) => task.id),
   );
+  const last = lastMaintenance();
+  const eta = averageTaskMs(tasks.map((task) => task.id));
+  const [doneNum, doneUnit] = splitUnit(t("opt.times", { n: maintenanceDoneCount() }));
 
   const cards = tasks
     .map((task, idx) => {
@@ -101,44 +107,74 @@ function renderChecklist(container: HTMLElement, tasks: OptimizeTask[]): void {
       const previous = lastMaintenance(task.id);
       const recent = ranRecently(task.id);
       const state = recent && !on
-        ? `<span class="t-state">✓ ${t("opt.ranAt", { when: relativeDay(daysSince(previous!.at)) })}</span>`
-        : `<button class="link-quiet ${on ? "accent" : ""}" data-task="${esc(task.id)}">${
+        ? `<span class="state ran">✓ ${t("opt.ranAt", { when: relativeDay(daysSince(previous!.at)) })}</span>`
+        : `<button class="state link plain ${on ? "accent" : ""}" data-task="${esc(task.id)}">${
             on ? `✓ ${t("opt.chosen")}` : t("opt.add")
           }</button>`;
       return `<div class="task ${on ? "" : "off"}" data-card="${esc(task.id)}">
         <span class="no">${String(idx + 1).padStart(2, "0")}</span>
         <div class="body">
-          <div class="t-title">${esc(task.title)}</div>
-          <div class="t-desc">${esc(task.description)}</div>
-          <div class="t-action">${state}</div>
+          <h3 class="t-title">${esc(task.title)}</h3>
+          <p class="t-desc">${esc(task.description)}</p>
+          ${state}
         </div>
       </div>`;
     })
     .join("");
 
   container.innerHTML = `
-    <div class="cols" style="padding-top:32px">
-      <div class="col-main">
-        <div class="led-head" style="margin-bottom:16px">
-          <span class="title" style="font-size:26px">${t("opt.listTitle", { n: tasks.length })}</span>
-          <button class="link-cta sm" id="go"></button>
-        </div>
-        <div class="task-grid">${cards}</div>
+    <div class="page opt-page">
+      <div class="folio">
+        <span class="issue">${esc(t("opt.kicker"))}</span>
+        <span>${esc(t("opt.strapline", { n: tasks.length }))}</span>
       </div>
-      <div class="col-side">
-        <span class="sec-label">${t("opt.log")}</span>
-        <div class="ledger tight" id="log">${logRows()}</div>
-        <div class="rule-soft" style="padding-top:14px;font-size:12px;line-height:1.8;color:var(--ink-faint);text-wrap:pretty">
-          ${t("opt.note")}
+      <section class="band">
+        <div class="ticker four">
+          <div class="tick">
+            <div class="tick-k">${t("opt.stat.last")}</div>
+            <div class="tick-v">${last ? esc(timestamp(last.at)) : "—"}</div>
+          </div>
+          <div class="tick">
+            <div class="tick-k">${t("opt.stat.done")}</div>
+            <div class="tick-v">${esc(doneNum)}${doneUnit ? `<small>${esc(doneUnit)}</small>` : ""}</div>
+          </div>
+          <div class="tick">
+            <div class="tick-k">${t("prev.selected")}</div>
+            <div class="tick-v"><span id="chosen-n"></span><small>/ ${tasks.length}</small></div>
+          </div>
+          <div class="tick">
+            <div class="tick-k">${t("opt.stat.eta")}</div>
+            <div class="tick-v">${eta === null ? "—" : esc(t("opt.minutes", { m: Math.max(1, Math.round(eta / 60_000)) }))}</div>
+          </div>
         </div>
-        <button class="link-quiet" id="back">${t("flow.cancel")}</button>
+      </section>
+      <div class="grid split">
+        <section class="mod">
+          <div class="kick"><span class="code">C1</span><span class="t">${t("opt.listKick")}</span></div>
+          <div class="headrow">
+            <h1 class="title">${t("opt.listTitle", { n: tasks.length })}</h1>
+            <button class="btn" id="go"></button>
+          </div>
+          <div class="tasks">${cards}</div>
+        </section>
+        <div class="side">
+          <aside class="mod">
+            <div class="kick"><span class="code">C2</span><span class="t">${t("opt.log")}</span></div>
+            <ul class="kv opt-log" id="log">${logRows()}</ul>
+            <p class="prose sm opt-note">${t("opt.note")}</p>
+            <div class="act-row"><button class="link" id="back">${t("flow.cancel")}</button></div>
+          </aside>
+        </div>
       </div>
     </div>`;
 
   const go = container.querySelector<HTMLButtonElement>("#go")!;
+  const chosenN = container.querySelector<HTMLElement>("#chosen-n")!;
+  /** Keep the run button and the ticker's chosen count in step with the picks. */
   const syncGo = () => {
     go.textContent = `${t("opt.runSelected", { n: chosen.size })} →`;
     go.disabled = chosen.size === 0;
+    chosenN.textContent = String(chosen.size);
   };
   syncGo();
 
@@ -206,39 +242,60 @@ async function renderRunning(container: HTMLElement, tasks: OptimizeTask[]): Pro
   const okCount = results.filter((r) => isOk(r)).length;
   const failCount = results.filter((r) => r.outcome === "failed").length;
   const skipCount = results.length - okCount - failCount;
-  const parts = [`${okCount} ${t("opt.sum.ok")}`];
-  if (skipCount > 0) parts.push(`${skipCount} ${t("opt.sum.skip")}`);
-  if (failCount > 0) parts.push(`${failCount} ${t("opt.sum.fail")}`);
+  // Each nonzero count gets its own ticker cell; ok always prints, skip and
+  // fail only when they happened, same as the one-line summary before.
+  const parts: { n: number; label: string; tone: string }[] = [
+    { n: okCount, label: t("opt.sum.ok"), tone: "" },
+  ];
+  if (skipCount > 0) parts.push({ n: skipCount, label: t("opt.sum.skip"), tone: "warn" });
+  if (failCount > 0) parts.push({ n: failCount, label: t("opt.sum.fail"), tone: "danger" });
 
   container.innerHTML = `
-    <div class="hero">
-      <span class="kicker">${t("opt.done")}</span>
-      <div class="big">${esc(parts.join(" · "))}</div>
-      <p class="sub">${t("opt.doneSub")}</p>
+    <div class="page opt-page">
+      <div class="folio">
+        <span class="issue">${esc(t("opt.kicker"))}</span>
+      </div>
+      <section class="opt-done">
+        <div class="kick"><span class="code">C1</span><span class="t">${t("opt.done")}</span></div>
+        <div class="band opt-sum">
+          <div class="ticker">
+            ${parts
+              .map(
+                (p) => `<div class="tick ${p.tone}">
+                  <div class="tick-k">${esc(p.label)}</div>
+                  <div class="tick-v">${p.n}</div>
+                </div>`,
+              )
+              .join("")}
+          </div>
+        </div>
+        <p class="prose opt-done-sub">${t("opt.doneSub")}</p>
+        <div class="act-row" id="done-actions"></div>
+      </section>
     </div>`;
-  const hero = container.querySelector<HTMLElement>(".hero")!;
   const back = document.createElement("button");
-  back.className = "frame-cta";
+  back.className = "btn";
   back.textContent = `${t("clean.again")} →`;
   back.addEventListener("click", () => {
     window.dispatchEvent(new HashChangeEvent("hashchange"));
   });
-  hero.append(back);
+  container.querySelector<HTMLElement>("#done-actions")!.append(back);
 }
 
-/** Right-rail log rows, newest first (empty ledger prints a dash). */
+/** Log module rows, newest first: date, task title … ✓ or the raw outcome
+ * (an empty ledger prints a dash). */
 function logRows(): string {
   const rows = maintenanceLog().slice(-6).reverse();
-  if (rows.length === 0) return `<div class="led"><span class="muted">—</span></div>`;
+  if (rows.length === 0) return `<li><span class="l muted">—</span></li>`;
   return rows
     .map((entry) => {
       const d = new Date(entry.at);
-      return `<div class="led">
-        <span class="muted">${d.getMonth() + 1}/${d.getDate()}</span>
-        <span>${esc(entry.title)}</span>
+      const ok = entry.outcome === "ok" || entry.outcome === "unchanged";
+      return `<li>
+        <span class="l"><span class="mono muted when">${d.getMonth() + 1}/${d.getDate()}</span>${esc(entry.title)}</span>
         <span class="dots"></span>
-        <span class="amt dim">${entry.outcome === "ok" || entry.outcome === "unchanged" ? "✓" : esc(entry.outcome)}</span>
-      </div>`;
+        <span class="v ${ok ? "" : "bad"}">${ok ? "✓" : esc(entry.outcome)}</span>
+      </li>`;
     })
     .join("");
 }

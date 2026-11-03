@@ -1,0 +1,1102 @@
+/* Tidy — tabloid stylesheet (redesign B「小报 · 模块栏格」).
+   The newspaper character lives in page structure, not giant type: a
+   one-line masthead with section page codes, a ticker band of key figures,
+   and ruled modules on a grid that reflows on its own. Every size is fluid
+   (clamp) and every breakpoint is a plain @media rule, because the app
+   window is the viewport. Tokens live in tokens.css; each view adds its own
+   view-*.css on top of these shared primitives.
+   Design source: design/tidy-redesign/ (BRIEF.md, b/b.css). */
+
+/* ── Element defaults ─────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font: 13.5px/1.7 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-variant-numeric: lining-nums;
+}
+
+a {
+  color: var(--rust);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--rust-dark);
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+}
+
+::selection {
+  background: rgba(164, 67, 44, 0.18);
+}
+
+/* Scrollbars read as a thin margin rule rather than a chrome element. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ink-ghost);
+  border: 3px solid var(--paper);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+}
+
+:focus-visible {
+  outline: 2px solid var(--rust);
+  outline-offset: 2px;
+}
+
+/* Plain buttons keep a hairline box so dialogs and toolbars stay legible;
+   the primary action is .btn (solid rust bar), text actions are .link. */
+button {
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--rule-edge);
+  border-radius: var(--radius-sm);
+  padding: 5px 12px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard);
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--rust);
+  color: var(--rust);
+}
+
+button:disabled {
+  color: var(--ink-ghost);
+  border-color: var(--rule-soft);
+  cursor: default;
+}
+
+button.danger {
+  border-color: var(--rust);
+  color: var(--rust);
+}
+
+button.danger:hover:not(:disabled) {
+  background: var(--rust);
+  color: var(--paper);
+}
+
+/* Text-style actions rendered as <button> lose the box entirely. */
+button.link,
+button.reveal,
+button.chev {
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: none;
+}
+
+/* Text actions drawn as <button class="link"> keep the surrounding type. */
+button.link {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+/* Native checkboxes drawn as the tabloid's square print mark. */
+input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  top: 2px;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  border: 1px solid var(--ink-soft);
+  border-radius: 0;
+  background: var(--paper);
+  cursor: pointer;
+}
+
+input[type="checkbox"]:checked {
+  border-color: var(--rust);
+  background: var(--rust);
+}
+
+input[type="checkbox"]:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--paper);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+input[type="checkbox"]:indeterminate {
+  border-color: var(--rust);
+  background: var(--paper);
+}
+
+input[type="checkbox"]:indeterminate::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 5px;
+  height: 2px;
+  background: var(--rust);
+}
+
+input[type="checkbox"]:disabled {
+  border-color: var(--rule-soft);
+  background: var(--wash-1);
+  cursor: default;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="search"] {
+  min-width: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rule-edge);
+  padding: 3px 2px;
+}
+
+input:focus {
+  outline: none;
+  border-bottom-color: var(--rust);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* ── App shell ────────────────────────────────────────────────────── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-width: 0;
+}
+
+/* The masthead is the window's title bar (data-tauri-drag-region="deep"):
+   a drag must move the window, not start selecting the wordmark. */
+#nav {
+  flex: none;
+  background: var(--paper);
+  user-select: none;
+  cursor: default;
+}
+
+/* Views lay out inside .page, which owns the gutters. */
+#view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* ── Shared odds and ends ─────────────────────────────────────────── */
+.spacer {
+  flex: 1;
+  min-width: 0;
+}
+
+.placeholder {
+  padding: 72px 0;
+  text-align: center;
+  color: var(--ink-faint);
+  font-size: 13px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Buttons, tabs, numbers, dates and badges never wrap or shrink. */
+.nowrap {
+  white-space: nowrap;
+  flex: none;
+}
+
+/* ── 报头：一行，TIDY + 带版号的栏目 Tab + 右侧时间，下方双线 ─────── */
+.mast {
+  display: flex;
+  align-items: baseline;
+  gap: clamp(16px, 2.4vw, 30px);
+  padding: 14px var(--gutter) 9px var(--mast-lights);
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.mast-word {
+  flex: none;
+  font: 700 20px/1 var(--font-serif);
+  letter-spacing: 6px;
+  color: var(--ink);
+}
+
+.mast-tabs {
+  display: flex;
+  flex: none;
+  gap: clamp(14px, 2vw, 26px);
+}
+
+.mast-tab {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  flex: none;
+  padding-bottom: 5px;
+  border-bottom: 2px solid transparent;
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.2;
+}
+
+.mast-tab .pg {
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: 0.5px;
+  color: var(--ink-faint);
+}
+
+.mast-tab.on {
+  color: var(--rust);
+  font-weight: 600;
+  border-bottom-color: var(--rust);
+}
+
+.mast-tab.on .pg {
+  color: var(--rust);
+}
+
+/* 右侧日期行：放不下时省略，绝不换行 */
+.mast-meta {
+  margin-left: auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font: 11.5px/1.2 var(--font-mono);
+  color: var(--ink-faint);
+}
+
+.mast-meta a {
+  color: var(--rust);
+}
+
+.mast-rules {
+  margin: 0 var(--gutter);
+  height: 5.5px;
+  border-top: 2.5px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+/* ── 版面容器 ─────────────────────────────────────────────────────── */
+.page {
+  max-width: calc(1240px + 2 * var(--gutter));
+  margin: 0 auto;
+  padding: 0 var(--gutter) 48px;
+}
+
+/* 版眉：期号（左）+ 本版提要（右），窄时自然换行 */
+.folio {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 24px;
+  padding: 11px 0 9px;
+  border-bottom: 1px solid var(--rule-soft);
+  font: 11px/1.4 var(--font-mono);
+  letter-spacing: 2px;
+  color: var(--ink-faint);
+}
+
+.folio > * {
+  white-space: nowrap;
+}
+
+.folio .issue {
+  color: var(--ink);
+  font-weight: 500;
+  letter-spacing: 3px;
+}
+
+/* ── 行情带：一排关键指标，竖线分隔，窄时自动换行 ─────────────────
+   每格都画左线和上线并向左上偏 1px，容器 clip-path 把行首和首行的线、
+   以及外扩到页边外的留白一起裁掉，这样不论一行几格，线都只出现在格与格之间。 */
+.band {
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.ticker {
+  --cell: 200px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--cell), 1fr));
+  margin: 0 calc(-1 * var(--mod-x));
+  clip-path: inset(0 var(--mod-x));
+}
+
+.ticker.four {
+  --cell: 300px;
+}
+
+.tick {
+  min-width: 0;
+  margin: -1px 0 0 -1px;
+  padding: 14px var(--mod-x) 13px;
+  border-left: 1px solid var(--rule-soft);
+  border-top: 1px solid var(--rule-soft);
+}
+
+.tick-k {
+  font: 500 11px/1.4 var(--font-mono);
+  letter-spacing: 1px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tick-v {
+  margin-top: 6px;
+  font: 600 var(--fs-tick)/1.05 var(--font-serif);
+  white-space: nowrap;
+  letter-spacing: -0.5px;
+}
+
+.tick-v small {
+  margin-left: 4px;
+  font-size: 0.48em;
+  letter-spacing: 0;
+  color: var(--ink-soft);
+}
+
+.tick-s {
+  margin-top: 6px;
+  font: 11px/1.5 var(--font-mono);
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 行情格里的小图：宽度跟随格子 */
+.tick-chart {
+  margin-top: 10px;
+  height: 22px;
+}
+
+/* ── 模块网格：栏线分隔，不用卡片阴影 ─────────────────────────────
+   与行情带同样的 -1px 偏移 + overflow 裁线做法；网格向外扩 --mod-x，
+   让第一栏文字与页边对齐。 */
+.grid {
+  --cols: 3;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  grid-auto-flow: row dense;
+  margin: 0 calc(-1 * var(--mod-x));
+  clip-path: inset(0 var(--mod-x));
+}
+
+.grid.auto {
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+/* 主栏 + 侧栏：侧栏宽度有上下限，不用固定像素 */
+.grid.split {
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
+}
+
+.grid.split.wide-side {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+}
+
+/* 软件页三栏：名录 / 档案 / 建议关注 */
+.grid.apps {
+  grid-template-columns: minmax(300px, 1fr) minmax(0, 1.25fr) minmax(220px, 260px);
+}
+
+.mod,
+.side {
+  min-width: 0;
+  margin: -1px 0 0 -1px;
+  border-left: 1px solid var(--rule-soft);
+  border-top: 1px solid var(--rule-soft);
+}
+
+.mod {
+  padding: 18px var(--mod-x) 24px;
+}
+
+/* 侧栏组：宽时上下堆叠，窄时横排成一行 */
+.side {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  overflow: hidden;
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.span-all {
+  grid-column: 1 / -1;
+}
+
+.rule-ink {
+  border-top-color: var(--rule-strong);
+}
+
+/* 模块眉题：等宽、字母间距，下方一条墨线 */
+.kick {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 14px;
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--rule-strong);
+  font: 500 11px/1.4 var(--font-mono);
+  letter-spacing: 2px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.kick .code {
+  flex: none;
+  font-weight: 500;
+  color: var(--ink-faint);
+  letter-spacing: 1px;
+}
+
+.kick .t {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kick .aside {
+  flex: none;
+  margin-left: auto;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: var(--ink-faint);
+}
+
+.kick a.aside {
+  color: var(--rust);
+}
+
+/* ── 文字 ─────────────────────────────────────────────────────────── */
+.headline {
+  font: 600 var(--fs-headline)/1.42 var(--font-serif);
+  letter-spacing: 0.5px;
+  text-wrap: balance;
+}
+
+.headline em {
+  font-style: normal;
+  color: var(--rust);
+}
+
+.title {
+  font: 600 clamp(20px, 0.8vw + 13px, 26px)/1.3 var(--font-serif);
+  text-wrap: balance;
+}
+
+.byline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-top: 14px;
+}
+
+.byline::before {
+  content: "";
+  flex: none;
+  width: 36px;
+  height: 2.5px;
+  background: var(--ink);
+}
+
+.byline .desk {
+  font: 600 13px/1.4 var(--font-serif);
+  white-space: nowrap;
+}
+
+.byline .date {
+  font: 11px/1.4 var(--font-mono);
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.prose {
+  font-size: 13.5px;
+  line-height: 1.9;
+  text-align: justify;
+  text-wrap: pretty;
+}
+
+.prose.sm {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--ink-soft);
+  text-align: left;
+}
+
+/* 首字下沉：墨色，三行高，在自己的段落里不压字 */
+.dropcap::first-letter {
+  float: left;
+  margin: 5px 8px 0 0;
+  font: 600 3.3em/1 var(--font-serif);
+  color: var(--ink);
+}
+
+.note {
+  font: 11.5px/1.6 var(--font-mono);
+  color: var(--ink-faint);
+}
+
+.muted {
+  color: var(--ink-faint);
+}
+
+/* ── 操作 ─────────────────────────────────────────────────────────── */
+/* 主按钮：实心锈红长条，白字，不换行不收缩 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex: none;
+  padding: 13px 28px;
+  border: 0;
+  background: var(--rust);
+  color: var(--paper);
+  font: 600 15px/1 var(--font-serif);
+  letter-spacing: 2px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btn:hover {
+  background: var(--rust-dark);
+  color: var(--paper);
+}
+
+/* On a <button>, the element defaults (hairline box, rust hover text) must
+   not leak into the solid bar: rust-on-rust text would vanish. */
+button.btn {
+  border: 0;
+  border-radius: 0;
+}
+
+button.btn:hover:not(:disabled) {
+  color: var(--paper);
+  border-color: transparent;
+}
+
+button.btn:disabled {
+  background: var(--wash-2);
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.btn.lg {
+  padding: 15px 36px;
+  font-size: 17px;
+}
+
+.btn.sm {
+  padding: 8px 14px;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+/* 次要操作：锈红文字链接 */
+.link {
+  flex: none;
+  color: var(--rust);
+  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+.link.plain {
+  text-decoration: none;
+}
+
+.link.mono {
+  font: 11.5px/1.4 var(--font-mono);
+}
+
+.link.off {
+  color: var(--ink-ghost);
+  text-decoration: none;
+  cursor: default;
+}
+
+.act-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  margin-top: 22px;
+}
+
+/* ── 数据栏：大号衬线数字放进框线格子 ───────────────────────────── */
+.fig {
+  font: 600 var(--fs-figure)/1 var(--font-serif);
+  letter-spacing: -1px;
+  white-space: nowrap;
+}
+
+.fig small {
+  margin-left: 6px;
+  font-size: 0.34em;
+  letter-spacing: 0;
+}
+
+.fig.md {
+  font-size: clamp(34px, 1.6vw + 18px, 44px);
+}
+
+.fig.sm {
+  font-size: clamp(22px, 0.6vw + 16px, 26px);
+  letter-spacing: 0;
+}
+
+.fig.sm small {
+  font-size: 0.5em;
+}
+
+.databox {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: stretch;
+  margin-top: 18px;
+  border-top: 2.5px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.databox > .cell {
+  min-width: 0;
+  padding: 18px 28px 18px 0;
+}
+
+.databox > .cell + .cell {
+  padding-left: 28px;
+  border-left: 1px solid var(--rule-soft);
+}
+
+.databox > .cell:last-child {
+  padding-right: 0;
+}
+
+.cell-k {
+  margin-bottom: 14px;
+  font: 500 11px/1.4 var(--font-mono);
+  letter-spacing: 2px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.cell-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+.pair .sep {
+  color: var(--ink-ghost);
+}
+
+/* ── 账目行：标签 … 点线 … 数值；标签可截断，数值永不收缩 ───────── */
+.kv {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.kv li {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  padding: 5px 0;
+}
+
+.kv .l {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kv .dots {
+  flex: 1 1 12px;
+  min-width: 12px;
+  height: 1px;
+  background: linear-gradient(90deg, var(--leader) 1px, transparent 1px) 0 0 / 3px 1px repeat-x;
+  transform: translateY(-4px);
+}
+
+.kv .v {
+  flex: none;
+  font: 13px/1.4 var(--font-mono);
+  white-space: nowrap;
+  text-align: right;
+}
+
+.kv .total {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule-strong);
+  font-weight: 600;
+}
+
+.kv .total .v {
+  font-weight: 600;
+}
+
+/* ── 紧凑表格：点线行分隔，等宽数字右对齐 ───────────────────────── */
+.tbl {
+  display: grid;
+  min-width: 0;
+}
+
+.tr {
+  display: grid;
+  align-items: baseline;
+  column-gap: 12px;
+  min-width: 0;
+  padding: 8px 0;
+  border-bottom: 1px dotted var(--leader);
+}
+
+.tr.th {
+  padding: 4px 0 6px;
+  border-bottom: 1px solid var(--rule-strong);
+  font: 500 11px/1.4 var(--font-mono);
+  letter-spacing: 1px;
+  color: var(--ink-soft);
+}
+
+.tr.th > * {
+  white-space: nowrap;
+}
+
+.ell {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.num {
+  font: 13px/1.4 var(--font-mono);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.tr.sum {
+  border-bottom: 0;
+  border-top: 1px solid var(--rule-strong);
+  margin-top: -1px;
+  font-weight: 600;
+}
+
+/* ── 小部件 ───────────────────────────────────────────────────────── */
+/* 复选框：可点击，所以选中态用锈红 */
+.cb {
+  position: relative;
+  top: 2px;
+  display: inline-block;
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 1px solid var(--ink-soft);
+  background: var(--paper);
+}
+
+.cb.on {
+  border-color: var(--rust);
+  background: var(--rust);
+}
+
+.cb.on::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 4px;
+  height: 8px;
+  border: solid var(--paper);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+}
+
+.cb.mixed {
+  border-color: var(--rust);
+}
+
+.cb.mixed::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  top: 5px;
+  height: 2px;
+  background: var(--rust);
+}
+
+.badge {
+  display: inline-block;
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid currentColor;
+  border-radius: var(--radius-sm);
+  font: 10.5px/1.6 var(--font-mono);
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+
+.badge.ok {
+  color: var(--ok);
+}
+
+.badge.warn {
+  color: var(--warn);
+}
+
+.badge.danger {
+  color: var(--danger);
+}
+
+.chev {
+  flex: none;
+  color: var(--ink-faint);
+  font-size: 11px;
+}
+
+.reveal {
+  flex: none;
+  color: var(--rust);
+  font: 12px/1 var(--font-mono);
+}
+
+.icon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-sm);
+  background: var(--wash-3);
+  color: var(--ink-soft);
+  font: 600 9.5px/1 var(--font-ui);
+}
+
+/* 横条：宽度由内联 width 给出，随格子缩放 */
+.bar {
+  height: 12px;
+  background: var(--wash-1);
+}
+
+.bar > i {
+  display: block;
+  height: 100%;
+  background: var(--wash-5);
+}
+
+.meter {
+  height: 8px;
+  background: var(--wash-1);
+}
+
+.meter > i {
+  display: block;
+  height: 100%;
+  background: var(--ink-soft);
+}
+
+.meter.warn > i {
+  background: var(--warn);
+}
+
+/* 每核柱状：柱子平分格宽，高度用内联 height */
+.cores {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 22px;
+}
+
+.cores > i {
+  flex: 1 1 0;
+  min-width: 0;
+  background: var(--wash-5);
+}
+
+.spark {
+  display: block;
+  width: 100%;
+  height: 22px;
+}
+
+
+/* ── 断点 ───────────────────────────────────────────────────────────
+   ≤980px：模块网格两栏；主栏 + 侧栏改为单栏，侧栏组横排到下方；
+   报头日期行只留时间。 */
+@media (max-width: 1100px) {
+  .grid.apps {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  }
+
+  .grid.apps > .side {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .mast-meta .long {
+    display: none;
+  }
+
+  /* 两栏时落单的模块占满一行，避免留洞 */
+  .span-all-narrow {
+    grid-column: 1 / -1;
+  }
+
+  .grid {
+    --cols: 2;
+  }
+
+  .grid.split,
+  .grid.split.wide-side {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .grid.split > .side {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+
+  .databox {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .databox > .cell.lede {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--rule-soft);
+  }
+
+  .databox > .cell:last-child {
+    padding-left: 28px;
+  }
+}
+
+/* ── 补充工具类 ─────────────────────────────────────────────────── */
+/* 两列行：标签 + 右侧数值 */
+.tr.c2 {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+/* 嵌在模块里的行情带：上下各一条线 */
+.band.boxed {
+  margin-top: 22px;
+  border-top: 1px solid var(--rule-strong);
+}
+
+/* 未处理表：路径（截断）| 大小 | 原因（正文，可换行） */
+.tr.skip {
+  grid-template-columns: minmax(0, 1.3fr) minmax(56px, 0.25fr) minmax(0, 1fr);
+}
+
+.tr .path-cell {
+  font-size: 12.5px;
+}
+
+.tr .reason {
+  line-height: 1.7;
+  text-wrap: pretty;
+}
+
+.th-num {
+  font: inherit;
+}
+
+/* 标题 + 主按钮一行：放不下时按钮整体换到下一行，不拆字 */
+.headrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  margin-bottom: 6px;
+}
+
+/* 勾选行：复选框 | 名称（截断）| 大小 */
+.tr.pick {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  padding: 6px 0;
+  font-size: 12.5px;
+}

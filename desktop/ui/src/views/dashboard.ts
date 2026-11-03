@@ -1,10 +1,10 @@
-// Status view (newspaper skin): a six-column metric strip set in giant serif
-// numerals — CPU with per-core bars, memory with pressure, GPU, disk, network,
-// and battery/fan — then the fan-control panel (manual RPM through the root
-// fan daemon, see mole-helper), a double rule, the two top-process ledgers
-// and the health rail, and finally the full sortable process table as the
-// continuation below the fold. The hardware line is printed in the masthead marginalia.
-// Refreshes every 2s while mounted only.
+// Status view (tabloid skin): a ticker band of six key figures — CPU with
+// per-core bars, memory with pressure, GPU, disk, network, and battery/fan —
+// each with a chart that stretches to its cell, then the fan-control strip
+// (manual RPM through the root fan daemon, see mole-helper), a module grid
+// with the two top-process ledgers and the health box, and the full sortable
+// process table as a full-width module. The hardware line is printed in the
+// masthead marginalia. Refreshes every 2s while mounted only.
 
 import {
   appIcon,
@@ -124,74 +124,73 @@ function loadLabel(s: StatusSnapshot): string {
   return t("st.highload");
 }
 
-/** Per-core bar chart (inline flex divs). */
+/** Per-core bar chart: bars share the ticker cell's width (.cores). */
 function coreBars(cores: number[]): string {
   const bars = cores
-    .map((c) => {
-      const h = Math.max(3, Math.round((c / 100) * 44));
-      return `<div class="core-bar" style="height:${h}px"></div>`;
-    })
+    .map((c) => `<i style="height:${Math.max(6, Math.min(100, c)).toFixed(0)}%"></i>`)
     .join("");
-  return `<div class="core-bars">${bars}</div>`;
+  return `<div class="cores">${bars}</div>`;
 }
 
-/** SVG polyline sparkline for a rolling buffer (0-100 scale or auto max). */
-function sparkline(buf: number[], color: string, autoScale = false): string {
-  if (buf.length < 2) return `<svg class="spark" viewBox="0 0 100 30"></svg>`;
-  const max = autoScale ? Math.max(1, ...buf) : 100;
-  const points = buf
+/** Polyline points for a rolling buffer on the 100×22 chart box. */
+function sparkPoints(buf: number[], max: number): string {
+  return buf
     .map((v, i) => {
       const x = (i / (HISTORY - 1)) * 100;
-      const y = 28 - (Math.min(v, max) / max) * 26;
+      const y = 21 - (Math.min(v, max) / max) * 19;
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
     .join(" ");
-  return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none">
-    <polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.5" /></svg>`;
 }
 
-/** Dual-line network chart (rx inked area, tx rust line), auto-scaled together. */
+/** SVG sparkline for a rolling buffer (0-100 scale or auto max). The SVG
+ * stretches to the cell width; non-scaling strokes keep the line hairline. */
+function sparkline(buf: number[], autoScale = false): string {
+  if (buf.length < 2) return `<svg class="spark" viewBox="0 0 100 22" aria-hidden="true"></svg>`;
+  const max = autoScale ? Math.max(1, ...buf) : 100;
+  return `<svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true">
+    <polyline points="${sparkPoints(buf, max)}" fill="none" stroke="var(--ink-soft)" stroke-width="1.2" vector-effect="non-scaling-stroke" /></svg>`;
+}
+
+/** Network chart: download as a washed area, upload as an ink line, both on
+ * one auto scale. Ink only — rust is reserved for clickable things. */
 function netChart(): string {
-  if (rxHistory.length < 2) return `<svg class="spark" viewBox="0 0 100 30"></svg>`;
+  if (rxHistory.length < 2) return `<svg class="spark" viewBox="0 0 100 22" aria-hidden="true"></svg>`;
   const max = Math.max(1, ...rxHistory, ...txHistory);
-  const line = (buf: number[], color: string, fill: boolean) => {
-    const pts = buf
-      .map((v, i) => `${((i / (HISTORY - 1)) * 100).toFixed(1)},${(28 - (v / max) * 26).toFixed(1)}`)
-      .join(" ");
-    return fill
-      ? `<polygon points="0,28 ${pts} 100,28" fill="${color}22" stroke="none" />
-         <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" />`
-      : `<polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" />`;
-  };
-  return `<svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none">
-    ${line(rxHistory, "#26241f", true)}${line(txHistory, "#a4432c", false)}</svg>`;
+  const rx = sparkPoints(rxHistory, max);
+  const lastX = (((rxHistory.length - 1) / (HISTORY - 1)) * 100).toFixed(1);
+  return `<svg class="spark" viewBox="0 0 100 22" preserveAspectRatio="none" aria-hidden="true">
+    <polygon points="0,22 ${rx} ${lastX},22" fill="var(--wash-3)" stroke="none" />
+    <polyline points="${sparkPoints(txHistory, max)}" fill="none" stroke="var(--ink)" stroke-width="1" vector-effect="non-scaling-stroke" /></svg>`;
 }
 
-/** One column of the metric strip: a giant serif reading, a monospaced
- * caption, and an optional chart. `hot` turns the whole column rust. */
-function metric(value: string, unit: string, label: string, chart: string, hot = false): string {
-  return `<div class="metric ${hot ? "hot" : ""}">
-    <div class="figure md">${value}<span class="unit">${unit}</span></div>
-    <span class="metric-label">${label}</span>
-    ${chart}
+/** One ticker cell: mono caption, serif figure with unit, then a chart or a
+ * second caption. `hot` turns the figure to the danger tone. The caption
+ * ellipsizes in narrow cells, so its full text rides along as a tooltip. */
+function tick(label: string, value: string, unit: string, below: string, hot = false): string {
+  return `<div class="tick${hot ? " st-hot" : ""}">
+    <div class="tick-k" title="${label}">${label}</div>
+    <div class="tick-v">${value}<small>${unit}</small></div>
+    ${below}
   </div>`;
 }
 
-/** Skeleton strip: the instant first paint before any snapshot exists, so
+/** Skeleton band: the instant first paint before any snapshot exists, so
  * opening the tab never shows a blank screen while sampling runs. */
 function renderSkeleton(container: HTMLElement): void {
-  const col = `<div class="metric">
-    <div class="skel-line" style="width:60%;height:40px"></div>
-    <div class="skel-line" style="width:80%;margin-top:10px"></div>
+  const cell = `<div class="tick">
+    <div class="st-skel" style="width:70%"></div>
+    <div class="st-skel" style="width:45%;height:30px;margin-top:8px"></div>
+    <div class="st-skel" style="width:100%;margin-top:12px"></div>
   </div>`;
   container.innerHTML = `
-    <div class="content-narrow">
-      <div class="metric-strip">${col.repeat(6)}</div>
-      <div class="rule-double"></div>
-      <div style="padding-top:20px">
-        <div class="skel-line" style="width:30%"></div>
-        <div class="skel-line" style="width:90%;margin-top:12px"></div>
-        <div class="skel-line" style="width:85%;margin-top:8px"></div>
+    <div class="page st-page">
+      <div class="folio"><span class="issue">E1 · ${t("nav.status")}</span></div>
+      <section class="band"><div class="ticker">${cell.repeat(6)}</div></section>
+      <div class="st-skel-body">
+        <div class="st-skel" style="width:30%"></div>
+        <div class="st-skel" style="width:90%;margin-top:12px"></div>
+        <div class="st-skel" style="width:85%;margin-top:8px"></div>
       </div>
     </div>`;
 }
@@ -225,13 +224,11 @@ function renderSnapshot(container: HTMLElement, s: StatusSnapshot): void {
   const bootDate = new Date(Date.now() - s.uptime_seconds * 1000);
   const usedPct = root ? ((root.total_bytes - root.available_bytes) / root.total_bytes) * 100 : 0;
 
-  // The hardware line belongs in the masthead marginalia, exactly where the
-  // reference prints it.
-  setNavMeta(
-    `${esc(s.hardware.chip.replace("Apple ", ""))} · ${s.hardware.memory_gb} GB · macOS ${esc(
-      s.hardware.os_version,
-    )}`,
-  );
+  // The hardware line belongs in the masthead marginalia; everything after
+  // the chip sits in .long so narrow windows keep just the chip.
+  const chip = esc(s.hardware.chip.replace("Apple ", ""));
+  const hwTail = ` · ${s.hardware.memory_gb} GB · macOS ${esc(s.hardware.os_version)}`;
+  setNavMeta(`${chip}<span class="long">${hwTail}</span>`);
 
   const memHot = pressure > 50 || memPct > 90;
   const cpuHot = s.cpu_usage_percent > 80;
@@ -244,97 +241,93 @@ function renderSnapshot(container: HTMLElement, s: StatusSnapshot): void {
   const gpuTemp = s.temperatures?.gpu_c ?? null;
   const tempTag = (c: number | null) => (c !== null ? ` ${formatTemp(c)}` : "");
 
-  const strip = [
-    metric(
-      s.cpu_usage_percent.toFixed(0),
-      "%",
+  // The load label is derived from the load average per CPU core, so it sits
+  // beside the CPU figure; in the GPU caption it pushed the line past the
+  // ~160px a ticker cell has at 1320px and got cut.
+  const ticks = [
+    tick(
       `${t("st.cpu")}${tempTag(cpuTemp)} · ${s.cpu_count} ${t("st.cores")}`,
-      coreBars(s.per_core_percent),
+      s.cpu_usage_percent.toFixed(0),
+      `%<span class="st-load">${loadLabel(s)}</span>`,
+      `<div class="tick-chart">${coreBars(s.per_core_percent)}</div>`,
       cpuHot,
     ),
-    metric(
-      memPct.toFixed(0),
-      "%",
+    tick(
       s.memory_pressure_percent !== null
         ? `${t("st.mem")} · ${t("st.pressure")} ${pressure}%`
         : `${t("st.mem")} · ${humanBytes(s.memory_total_bytes)}`,
-      `<div class="meter ${memHot ? "accent" : ""}"><div style="width:${Math.min(100, memPct)}%"></div></div>`,
+      memPct.toFixed(0),
+      "%",
+      `<div class="tick-chart st-meter-chart"><div class="meter${memHot ? " warn" : ""}"><i style="width:${Math.min(100, memPct).toFixed(1)}%"></i></div></div>`,
       memHot,
     ),
-    metric(
+    tick(
+      `${t("st.gpu")}${tempTag(gpuTemp)} · ${s.gpu.core_count ?? "—"} ${t("st.gpucores")}`,
       String(s.gpu.utilization_percent ?? 0),
       "%",
-      `${t("st.gpu")}${tempTag(gpuTemp)} · ${s.gpu.core_count ?? "—"} ${t("st.gpucores")} · ${loadLabel(s)}`,
-      sparkline(gpuHistory, "var(--ink)"),
+      `<div class="tick-chart">${sparkline(gpuHistory)}</div>`,
     ),
     root
-      ? metric(
-          ...headlineBytes(root.available_bytes),
+      ? tick(
           `${t("st.disk")} · ${t("st.used")} ${usedPct.toFixed(0)}%`,
-          `<div class="meter"><div style="width:${usedPct.toFixed(0)}%"></div></div>`,
+          ...headlineBytes(root.available_bytes),
+          `<div class="tick-chart st-meter-chart"><div class="meter"><i style="width:${usedPct.toFixed(0)}%"></i></div></div>`,
         )
       : "",
-    metric(
+    tick(
+      `${t("st.net")}${s.network.interface ? ` · ${esc(s.network.interface)}` : ""} · ↑${humanBytes(s.network.tx_rate_bps)}`,
       headlineBytes(s.network.rx_rate_bps)[0],
       `${headlineBytes(s.network.rx_rate_bps)[1]}/s`,
-      `${t("st.net")}${s.network.interface ? ` · ${esc(s.network.interface)}` : ""} · ↑${humanBytes(s.network.tx_rate_bps)}`,
-      netChart(),
+      `<div class="tick-chart">${netChart()}</div>`,
     ),
-    batteryMetric(s, fans),
+    batteryTick(s, fans),
   ].join("");
-
-  const procColumn = (label: string, rows: string) =>
-    `<div class="col-main">
-      <span class="sec-label">${label}</span>
-      <div class="ledger tight">${rows}</div>
-    </div>`;
 
   const byCpu = [...s.top_processes].sort((a, b) => b.cpu_percent - a.cpu_percent).slice(0, 5);
   const byMem = [...s.top_processes].sort((a, b) => b.memory_bytes - a.memory_bytes).slice(0, 5);
-  const ledRow = (name: string, value: string, hot: boolean) =>
-    `<div class="led ${hot ? "flag" : ""}">
-      <span class="name">${esc(name)}</span>
-      <span class="dots"></span>
-      <span class="amt">${esc(value)}</span>
-    </div>`;
+  const kvRow = (name: string, value: string, hot: boolean) =>
+    `<li><span class="l">${esc(name)}</span><span class="dots"></span><span class="v${hot ? " st-hot-v" : ""}">${esc(value)}</span></li>`;
+  const kick = (code: string, title: string, aside = "") =>
+    `<div class="kick"><span class="code">${code}</span><span class="t">${title}</span>${
+      aside ? `<span class="aside">${aside}</span>` : ""
+    }</div>`;
+  const healthy = score >= 85;
 
-  // The strip and everything below the fan panel are re-painted as two
+  // The band and everything below the fan panel are re-painted as two
   // separate regions; the #fan-panel node in between is never touched, so a
   // slider mid-drag keeps its pointer capture and its event listeners.
-  const topHtml = `<div class="metric-strip">${strip}</div>`;
+  const topHtml = `
+      <div class="folio">
+        <span class="issue">E1 · ${t("nav.status")}</span>
+        <span>${chip}${hwTail}</span>
+      </div>
+      <section class="band"><div class="ticker">${ticks}</div></section>`;
   const restHtml = `
-      <div class="rule-double"></div>
-      <div class="cols" style="padding-top:20px">
-        ${procColumn(
-          t("st.proc.byCpu"),
-          byCpu
-            .map((p) => ledRow(p.name, p.cpu_percent.toFixed(1), p.cpu_percent > 100))
-            .join(""),
-        )}
-        <div class="col-main col-rule">
-          <span class="sec-label">${t("st.proc.byMem")}</span>
-          <div class="ledger tight">
-            ${byMem.map((p) => ledRow(p.name, humanBytes(p.memory_bytes), false)).join("")}
-          </div>
-        </div>
-        <div class="col-side">
-          <span class="sec-label">${t("st.health")}</span>
-          <div class="figure" style="font-size:44px">${score}<small style="font-size:16px;color:var(--ink-faint)"> / ${
-            score >= 85 ? t("st.good") : t("st.fair")
-          }</small></div>
-          <span class="health-note">${esc(message)}</span>
-          <span class="mono muted" style="font-size:11.5px">
-            ${t("st.uptime")} ${humanUptime(s.uptime_seconds)} · ${t("st.since")} ${bootDate.getMonth() + 1}/${bootDate.getDate()}
-          </span>
-        </div>
+      <div class="grid st-grid">
+        <section class="mod">
+          ${kick("E1", t("st.proc.byCpu"), "%")}
+          <ul class="kv">${byCpu
+            .map((p) => kvRow(p.name, p.cpu_percent.toFixed(1), p.cpu_percent > 100))
+            .join("")}</ul>
+        </section>
+        <section class="mod">
+          ${kick("E2", t("st.proc.byMem"))}
+          <ul class="kv">${byMem.map((p) => kvRow(p.name, humanBytes(p.memory_bytes), false)).join("")}</ul>
+        </section>
+        <section class="mod st-health">
+          ${kick("E3", t("st.health"))}
+          <div class="fig md">${score}<small>/ ${healthy ? t("st.good") : t("st.fair")}</small></div>
+          <p class="st-health-msg${healthy ? "" : " st-hot-v"}">${esc(message)}</p>
+          <p class="note st-health-up">${t("st.uptime")} ${humanUptime(s.uptime_seconds)} · ${t("st.since")} ${
+            bootDate.getMonth() + 1
+          }/${bootDate.getDate()}</p>
+        </section>
+        <section class="mod span-all rule-ink">
+          ${kick("E4", t("st.proc.all", { n: s.top_processes.length }))}
+          <div id="proc-panel">${procTable(s)}</div>
+        </section>
       </div>
-      <div class="rule" style="margin-top:26px;padding-top:16px">
-        <span class="sec-label">${t("st.proc.all", { n: s.top_processes.length })}</span>
-        <div id="proc-panel" style="margin-top:10px">${procTable(s)}</div>
-      </div>
-      <div class="muted mono" style="text-align:center;font-size:11px;padding:14px 0 4px">
-        ${esc(s.platform)} · ${esc(s.host)}
-      </div>`;
+      <p class="colophon">${esc(s.platform)} · ${esc(s.host)}</p>`;
 
   const top = container.querySelector<HTMLElement>("#snap-top");
   const rest = container.querySelector<HTMLElement>("#snap-rest");
@@ -343,9 +336,9 @@ function renderSnapshot(container: HTMLElement, s: StatusSnapshot): void {
     rest.innerHTML = restHtml;
   } else {
     container.innerHTML = `
-    <div class="content-narrow">
+    <div class="page st-page">
       <div id="snap-top">${topHtml}</div>
-      <div id="fan-panel" class="fan-panel hidden"></div>
+      <div id="fan-panel" class="st-fan hidden"></div>
       <div id="snap-rest">${restHtml}</div>
     </div>`;
     renderFanPanel();
@@ -354,45 +347,39 @@ function renderSnapshot(container: HTMLElement, s: StatusSnapshot): void {
   wireProcTable(container);
 }
 
-/** Sixth strip column: battery when present, otherwise fan RPM — whichever
+/** Sixth ticker cell: battery when present, otherwise fan RPM — whichever
  * the hardware actually reports, never an empty slot. */
-function batteryMetric(s: StatusSnapshot, fans: FanStatus[]): string {
-  const fanLine =
-    fans.length > 0
-      ? `${t("st.fan")} ${Math.round(Math.max(...fans.map((f) => f.actual_rpm)))} RPM ×${fans.length}`
-      : t("st.fan.none");
+function batteryTick(s: StatusSnapshot, fans: FanStatus[]): string {
+  const maxRpm = fans.length > 0 ? Math.round(Math.max(...fans.map((f) => f.actual_rpm))) : null;
+  const fanLine = maxRpm !== null ? `${t("st.fan")} ${maxRpm} RPM ×${fans.length}` : t("st.fan.none");
   if (s.battery) {
     // Charge percent leads; battery temperature is deliberately not shown
     // (it barely moves and reads as if it were the chip temperature).
-    return `<div class="metric" style="flex:0.8">
-      <div class="figure md">${s.battery.percent}<span class="unit">%</span></div>
-      <span class="metric-label">${t("st.battery")}${
-        s.battery.charging ? " ⚡" : ""
-      } · ${s.battery.cycle_count ?? "—"} ${t("st.cycles")}</span>
-      <span class="metric-label">${fanLine}</span>
-    </div>`;
+    return tick(
+      `${t("st.battery")}${s.battery.charging ? " ⚡" : ""} · ${s.battery.cycle_count ?? "—"} ${t("st.cycles")}`,
+      String(s.battery.percent),
+      "%",
+      `<div class="tick-s" title="${fanLine}">${fanLine}</div>`,
+    );
   }
-  return `<div class="metric" style="flex:0.8">
-    <div class="figure md">${
-      fans.length > 0 ? Math.round(Math.max(...fans.map((f) => f.actual_rpm))) : "—"
-    }<span class="unit">RPM</span></div>
-    <span class="metric-label">${t("st.fan")} · ${t("st.fan.macos")}</span>
-  </div>`;
+  return tick(`${t("st.fan")} · ${t("st.fan.macos")}`, maxRpm !== null ? String(maxRpm) : "—", "RPM", "");
 }
 
-
-/** Full process table markup (thead + tbody) from a snapshot. */
+/** Full process table markup (header row + rows) from a snapshot. */
 function procTable(s: StatusSnapshot): string {
-  return `<table class="proc-table">
-    <thead><tr>
-      <th data-col="name" class="sortable">${t("st.name")} (${s.top_processes.length}) ${arrow("name")}</th>
-      <th data-col="pid" class="num sortable">PID ${arrow("pid")}</th>
-      <th data-col="cpu" class="num sortable">CPU ${arrow("cpu")}</th>
-      <th data-col="energy" class="num sortable">${t("st.energy")} ${arrow("energy")}</th>
-      <th data-col="mem" class="num sortable">${t("st.mem")} ${arrow("mem")}</th>
-    </tr></thead>
-    <tbody>${procRows(s.top_processes)}</tbody>
-  </table>`;
+  const head = (col: typeof sortCol, label: string) =>
+    `<button class="st-sort${col === sortCol ? " on" : ""}" data-col="${col}">${label} ${arrow(col)}</button>`;
+  return `<div class="tbl">
+    <div class="tr th st-proc">
+      <span></span>
+      <span>${head("name", `${t("st.name")} (${s.top_processes.length})`)}</span>
+      <span class="num th-num">${head("pid", "PID")}</span>
+      <span class="num th-num">${head("cpu", "CPU")}</span>
+      <span class="num th-num">${head("energy", t("st.energy"))}</span>
+      <span class="num th-num">${head("mem", t("st.mem"))}</span>
+    </div>
+    ${procRows(s.top_processes)}
+  </div>`;
 }
 
 /** Wire header sorting (instant, from the cached snapshot), row clicks, and
@@ -401,7 +388,7 @@ function wireProcTable(container: HTMLElement): void {
   const panel = container.querySelector<HTMLElement>("#proc-panel");
   if (!panel) return;
 
-  panel.querySelectorAll<HTMLElement>("th.sortable").forEach((th) => {
+  panel.querySelectorAll<HTMLElement>("[data-col]").forEach((th) => {
     th.addEventListener("click", () => {
       const col = th.dataset.col as typeof sortCol;
       if (sortCol === col) sortDesc = !sortDesc;
@@ -417,7 +404,7 @@ function wireProcTable(container: HTMLElement): void {
     });
   });
 
-  panel.querySelectorAll<HTMLElement>("tr.proc-row").forEach((row) => {
+  panel.querySelectorAll<HTMLElement>(".st-proc-row").forEach((row) => {
     row.addEventListener("click", () => void openProcessModal(Number(row.dataset.pid)));
   });
 
@@ -448,7 +435,7 @@ function wireProcTable(container: HTMLElement): void {
       const icon = procIcons.get(el.dataset.prociconpath!);
       if (icon && el.isConnected) {
         const img = document.createElement("img");
-        img.className = "proc-icon";
+        img.className = "st-icon";
         img.src = icon;
         el.replaceWith(img);
       }
@@ -456,65 +443,76 @@ function wireProcTable(container: HTMLElement): void {
   })();
 }
 
+/** Icon tile for a process: the cached app icon, or a lettered tile (apps)
+ * / gear (system processes) carrying the path for the lazy icon fill. */
+function procIconHtml(name: string, appPath: string | null, big = false): string {
+  const cached = appPath ? procIcons.get(appPath) : null;
+  const size = big ? " big" : "";
+  if (cached) return `<img class="st-icon${size}" src="${cached}" alt="" />`;
+  const glyph = appPath ? esc(name.charAt(0).toUpperCase()) : "⚙︎";
+  return `<span class="icon st-icon${size}" ${appPath ? `data-prociconpath="${esc(appPath)}"` : ""}>${glyph}</span>`;
+}
 
-/** The process detail modal (reference design image: OrbStack Helper). */
+/** The process detail sheet: identity, parent chain, key/value facts, the
+ * command line, and the copy / reveal / terminate / force-quit actions. */
 async function openProcessModal(pid: number): Promise<void> {
   const backdrop = document.createElement("div");
-  backdrop.className = "confirm-backdrop";
-  backdrop.innerHTML = `<div class="proc-sheet"><div class="placeholder">…</div></div>`;
+  backdrop.className = "st-backdrop";
+  backdrop.innerHTML = `<div class="st-sheet" role="dialog" aria-modal="true"><div class="placeholder">…</div></div>`;
   document.body.appendChild(backdrop);
   backdrop.addEventListener("click", (ev) => {
     if (ev.target === backdrop) backdrop.remove();
   });
 
   const d: ProcessDetail | null = await processDetail(pid).catch(() => null);
-  const sheet = backdrop.querySelector<HTMLElement>(".proc-sheet")!;
+  const sheet = backdrop.querySelector<HTMLElement>(".st-sheet")!;
   if (!d) {
     sheet.innerHTML = `<div class="placeholder">${t("proc.killfail")}</div>`;
     return;
   }
 
-  const icon = d.app_path ? procIcons.get(d.app_path) : null;
   const chain = [...d.parent_chain, [d.pid, d.name] as [number, string]]
     .map(
       ([cpid, cname], i, arr) =>
-        `<span class="${i === arr.length - 1 ? "" : "muted"}">${esc(cname)} <span class="muted">${cpid}</span></span>`,
+        `<span class="${i === arr.length - 1 ? "st-chain-self" : ""}">${esc(cname)} <span class="muted">${cpid}</span></span>`,
     )
-    .join(" › ");
+    .join(` <span class="muted">›</span> `);
   const row = (label: string, value: string) =>
-    value
-      ? `<div class="proc-kv"><span class="k muted">${label}</span><span class="v">${value}</span></div>`
-      : "";
+    value ? `<div class="st-kv-row"><span class="k">${label}</span><span class="v">${value}</span></div>` : "";
 
   sheet.innerHTML = `
-    <div class="proc-head">
-      ${icon ? `<img class="proc-icon big" src="${icon}" alt="" />` : `<span class="proc-icon big fallback">⚙︎</span>`}
-      <h2>${esc(d.name)}</h2>
-      <button class="chev" id="pm-close">✕</button>
+    <div class="st-sheet-head">
+      ${procIconHtml(d.name, d.app_path, true)}
+      <h2 class="title">${esc(d.name)}</h2>
+      <button class="chev st-close" id="pm-close" aria-label="✕">✕</button>
     </div>
-    <div class="muted" style="font-family:var(--font-mono);font-size:12px;margin-bottom:12px">
-      PID ${d.pid} · CPU ${d.cpu_percent.toFixed(1)}% · MEM ${humanBytes(d.memory_bytes)}
-      ${d.user ? ` · ${esc(d.user)}` : ""}${d.app_path ? ` · ${t("proc.from")} ${esc(d.app_path.split("/").pop()?.replace(".app", "") ?? "")}` : ""}
+    <p class="note st-sheet-meta">
+      PID ${d.pid} · CPU ${d.cpu_percent.toFixed(1)}% · MEM ${humanBytes(d.memory_bytes)}${d.user ? ` · ${esc(d.user)}` : ""}${
+        d.app_path ? ` · ${t("proc.from")} ${esc(d.app_path.split("/").pop()?.replace(".app", "") ?? "")}` : ""
+      }
+    </p>
+    <p class="note st-chain">${chain}</p>
+    <div class="st-kv">
+      ${row(t("proc.threads"), d.threads !== null ? String(d.threads) : "")}
+      ${row(t("proc.openfiles"), d.open_files !== null ? String(d.open_files) : "")}
+      ${row(t("proc.diskio"), `${humanBytes(d.disk_read_bytes)} R · ${humanBytes(d.disk_written_bytes)} W`)}
+      ${row(
+        t("proc.ports"),
+        d.listen_ports.length
+          ? `${d.listen_ports.map(esc).join(", ")} <span class="badge warn">${t("proc.ports.warn")}</span>`
+          : "",
+      )}
+      ${row(t("proc.children"), String(d.children))}
+      ${row(t("proc.user"), d.user ? esc(d.user) : "")}
+      ${row(t("proc.runtime"), humanRuntime(d.run_time_seconds))}
+      ${row(t("proc.cwd"), d.cwd ? esc(d.cwd) : "")}
+      ${row(t("proc.exe"), d.exe ? esc(d.exe) : "")}
+      ${d.cmd.length ? `<div class="st-kv-row st-kv-cmd"><span class="k">${t("proc.cmd")}</span><code class="st-cmd">${esc(d.cmd.join(" "))}</code></div>` : ""}
     </div>
-    <div class="muted" style="font-family:var(--font-mono);font-size:12px;margin-bottom:14px">${chain}</div>
-    ${row(t("proc.threads"), d.threads !== null ? String(d.threads) : "")}
-    ${row(t("proc.openfiles"), d.open_files !== null ? String(d.open_files) : "")}
-    ${row(t("proc.diskio"), `${humanBytes(d.disk_read_bytes)} R · ${humanBytes(d.disk_written_bytes)} W`)}
-    ${row(
-      t("proc.ports"),
-      d.listen_ports.length
-        ? `${d.listen_ports.map(esc).join(", ")} <span class="badge warn">${t("proc.ports.warn")}</span>`
-        : "",
-    )}
-    ${row(t("proc.children"), String(d.children))}
-    ${row(t("proc.user"), d.user ? esc(d.user) : "")}
-    ${row(t("proc.runtime"), humanRuntime(d.run_time_seconds))}
-    ${row(t("proc.cwd"), d.cwd ? esc(d.cwd) : "")}
-    ${row(t("proc.exe"), d.exe ? esc(d.exe) : "")}
-    ${d.cmd.length ? `<div class="proc-kv"><span class="k muted">${t("proc.cmd")}</span></div><div class="proc-cmd">${esc(d.cmd.join(" "))}</div>` : ""}
-    <div class="confirm-actions">
+    <div class="st-sheet-actions">
       <button id="pm-copy">${t("proc.copy")}</button>
       ${d.exe ? `<button id="pm-reveal">${t("proc.reveal")}</button>` : ""}
+      <span class="spacer"></span>
       <button id="pm-term">${t("proc.term")}</button>
       <button id="pm-kill" class="danger">${t("proc.kill")}</button>
     </div>`;
@@ -542,11 +540,12 @@ async function openProcessModal(pid: number): Promise<void> {
 
 /** Sort indicator for a column header. */
 function arrow(col: string): string {
-  if (col !== sortCol) return "⇅";
-  return `<svg class="sort-chev ${sortDesc ? "" : "ascending"}" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>`;
+  if (col !== sortCol) return `<span class="st-sort-idle">⇅</span>`;
+  return `<svg class="st-sort-chev ${sortDesc ? "" : "ascending"}" width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>`;
 }
 
-/** Sorted process rows with CPU bars and hot flames. */
+/** Sorted process rows: status dot, icon + name, PID, CPU bar + figure,
+ * CPU time (energy proxy) and memory. */
 function procRows(procs: ProcessInfo[]): string {
   const sorted = [...procs].sort((a, b) => {
     const cmp =
@@ -565,19 +564,16 @@ function procRows(procs: ProcessInfo[]): string {
   return sorted
     .map((p) => {
       const hot = p.cpu_percent > 100;
-      const width = Math.max(2, Math.round((p.cpu_percent / maxCpu) * 60));
-      const cachedIcon = p.app_path ? procIcons.get(p.app_path) : null;
-      const iconHtml = cachedIcon
-        ? `<img class="proc-icon" src="${cachedIcon}" alt="" />`
-        : `<span class="proc-icon fallback" ${p.app_path ? `data-prociconpath="${esc(p.app_path)}"` : ""}>⚙︎</span>`;
-      return `<tr class="proc-row" data-pid="${p.pid}">
-        <td><span class="proc-dot ${hot ? "hot" : ""}"></span>${iconHtml} ${esc(p.name)} ${hot ? "🔥" : ""}</td>
-        <td class="muted num">${p.pid}</td>
-        <td class="num"><span class="cpu-bar ${hot ? "hot" : ""}" style="width:${width}px"></span>
-          <span style="color:${hot ? "var(--danger)" : "inherit"}">${p.cpu_percent.toFixed(1)}</span></td>
-        <td class="muted num">${humanCpuTime(p.cpu_time_ms)}</td>
-        <td class="num">${humanBytes(p.memory_bytes)}</td>
-      </tr>`;
+      const width = Math.max(3, Math.round((p.cpu_percent / maxCpu) * 100));
+      const dot = hot ? "hot" : p.cpu_percent < 1 ? "idle" : "ok";
+      return `<div class="tr st-proc st-proc-row" data-pid="${p.pid}">
+        <span class="st-dot ${dot}"></span>
+        <span class="ell">${procIconHtml(p.name, p.app_path)} ${esc(p.name)}${hot ? " 🔥" : ""}</span>
+        <span class="num muted">${p.pid}</span>
+        <span class="st-cpu"><span class="st-mini"><i style="width:${width}%"></i></span><span class="num${hot ? " st-hot-v" : ""}">${p.cpu_percent.toFixed(1)}</span></span>
+        <span class="num muted">${humanCpuTime(p.cpu_time_ms)}</span>
+        <span class="num">${humanBytes(p.memory_bytes)}</span>
+      </div>`;
     })
     .join("");
 }
@@ -595,33 +591,38 @@ let fanDragging = false;
 let fanRenderPending = false;
 let fanTimer: number | null = null;
 
-/** Panel markup for the current fan state; empty on fanless Macs. */
+/** Panel markup for the current fan state; empty on fanless Macs. A ruled
+ * strip under the ticker band: kicker with the RPM range, then one control
+ * row that wraps as a whole (the slider takes the slack). */
 function fanPanelMarkup(): string {
   const f = fanState;
   if (!f || f.fan_count === 0) return "";
   const min = Math.round(f.min_rpm ?? 0);
   const max = Math.round(f.max_rpm ?? 0);
   const target = Math.round(f.target_rpm ?? f.min_rpm ?? 0);
-  const err = fanError ? `<span class="fan-err">${esc(fanError)}</span>` : "";
+  const err = fanError ? `<p class="st-fan-err">${esc(fanError)}</p>` : "";
+  const kick = (aside: string) =>
+    `<div class="kick"><span class="code">RPM</span><span class="t">${t("st.fan.control")}</span>${aside}</div>`;
   if (!f.running) {
-    return `<span class="sec-label">${t("st.fan.control")}</span>
-      <div class="fan-row">
-        <span class="mono muted">${t("st.fan.auto")}</span>
+    return `${kick("")}
+      <div class="st-fan-row">
+        <span class="st-fan-mode">${t("st.fan.auto")}</span>
         <button id="fan-start" ${fanBusy ? "disabled" : ""}>${t("st.fan.enable")}</button>
-        <span class="muted fan-desc">${t("st.fan.enable.desc")}</span>${err}
-      </div>`;
+        <span class="st-fan-desc">${t("st.fan.enable.desc")}</span>
+      </div>${err}`;
   }
   // Running: mode toggle + slider (slider only active in manual mode).
-  return `<span class="sec-label">${t("st.fan.control")}</span>
-    <div class="fan-row">
-      <button class="toggle ${f.forced ? "on" : ""}" id="fan-mode" ${fanBusy ? "disabled" : ""}></button>
-      <span class="mono">${f.forced ? t("st.fan.manual") : t("st.fan.auto")}</span>
-      <input type="range" id="fan-rpm" min="${min}" max="${max}" step="50" value="${target}"
+  return `${kick(`<span class="aside">${t("st.fan.range")} ${min}–${max}</span>`)}
+    <div class="st-fan-row">
+      <span class="st-fan-switch">
+        <button class="toggle ${f.forced ? "on" : ""}" id="fan-mode" role="switch" aria-checked="${f.forced}" ${fanBusy ? "disabled" : ""}></button>
+        <span class="st-fan-mode">${f.forced ? t("st.fan.manual") : t("st.fan.auto")}</span>
+      </span>
+      <input type="range" id="fan-rpm" class="st-range" min="${min}" max="${max}" step="50" value="${target}"
         ${f.forced && !fanBusy ? "" : "disabled"} />
-      <span class="mono fan-rpm-label" id="fan-rpm-label">${target} RPM</span>
-      <span class="muted mono fan-desc">${t("st.fan.range")} ${min}–${max}</span>
-      <button id="fan-stop" ${fanBusy ? "disabled" : ""}>${t("st.fan.back")}</button>${err}
-    </div>`;
+      <span class="st-fan-rpm" id="fan-rpm-label">${target} RPM</span>
+      <button id="fan-stop" ${fanBusy ? "disabled" : ""}>${t("st.fan.back")}</button>
+    </div>${err}`;
 }
 
 /** Run one fan action, then re-render from the returned state. */

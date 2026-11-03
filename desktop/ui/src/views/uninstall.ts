@@ -78,23 +78,24 @@ export const uninstall: View = {
   },
 };
 
-/** Shell: the three section words + the active section's body. */
+/** Shell: the serif sub-tab row + the active section's body + the sticky
+ * selection bar (tabloid layout: everything sits inside one .page). */
 async function renderShell(container: HTMLElement): Promise<void> {
   container.innerHTML = `
-    <div class="content-narrow">
-      <div class="flow-toolbar" id="subtabs">
+    <div class="page apps-page">
+      <nav class="subtabs" id="subtabs">
         ${(["uninstall", "updates", "login"] as SubTab[])
           .map(
             (tab) =>
-              `<button data-subtab="${tab}" class="${tab === subTab ? "danger" : ""}">${t(
+              `<button data-subtab="${tab}" class="subtab ${tab === subTab ? "on" : ""}">${t(
                 `apps.tab.${tab}`,
               )}</button>`,
           )
           .join("")}
-        <span id="tab-extra"></span>
-      </div>
+        <span class="extra" id="tab-extra"></span>
+      </nav>
       <div id="tab-body"><div class="placeholder">…</div></div>
-      <div class="footer-bar" id="footer" style="display:none"></div>
+      <div class="selbar" id="footer" style="display:none"></div>
     </div>`;
 
   container.querySelectorAll<HTMLButtonElement>("button[data-subtab]").forEach((btn) => {
@@ -128,45 +129,48 @@ async function renderUninstall(container: HTMLElement, body: HTMLElement): Promi
   // the one thing the inventory really knows: the heaviest bundles.
   const heaviest = [...apps].sort((a, b) => b.size_kb - a.size_kb).slice(0, 3);
 
+  // Tabloid spread: B1 名录 · B2 dossier · B3 建议关注 on the shared
+  // .grid.apps (tabloid.css folds it to two columns + a full-width rail).
   body.innerHTML = `
-    <div class="cols">
-      <div class="col-main" style="flex:0 0 400px">
-        <div class="led-head">
-          <span class="title">${t("apps.directory")}</span>
-          <span class="aside">
-            <a href="#" data-sort="name">${t("apps.sort.name")} ⇅</a>
-            <a href="#" data-sort="size">${t("apps.sort.size")} ⇅</a>
+    <div class="grid apps">
+      <section class="mod">
+        <div class="kick">
+          <span class="code">B1</span><span class="t">${t("apps.directory")}</span>
+          <span class="aside sorts">
+            <a href="#" data-sort="name" class="${sortKey === "name" ? "on" : ""}">${t("apps.sort.name")} ⇅</a>
+            <a href="#" data-sort="size" class="${sortKey === "size" ? "on" : ""}">${t("apps.sort.size")} ⇅</a>
           </span>
         </div>
-        <input type="search" id="app-search" placeholder="${t("apps.search")}"
-          value="${esc(query)}" style="width:100%" />
+        <label class="search"><span aria-hidden="true">⌕</span>
+          <input type="search" id="app-search" placeholder="${t("apps.search")}" value="${esc(query)}" />
+        </label>
         <div id="app-list"></div>
-      </div>
-      <div class="col-main col-rule" id="app-detail"></div>
-      <div class="col-side">
-        <span class="sec-label">${t("apps.watch")}</span>
-        <div style="font-size:13px;line-height:1.6">${t("apps.watch.sub", {
-          n: heaviest.length,
-          size: humanKb(heaviest.reduce((sum, a) => sum + a.size_kb, 0)),
-        })}</div>
-        <div class="ledger tight rule-soft" style="padding-top:14px">
-          ${heaviest
-            .map(
-              (app) => `<div class="led">
-                <a href="#" data-focus="${esc(app.path)}">${esc(app.name)}</a>
-                <span class="dots"></span>
-                <span class="amt dim">${humanKb(app.size_kb)}</span>
-              </div>`,
-            )
-            .join("")}
-        </div>
-        <div class="rule-soft" style="padding-top:14px;font-size:12px;line-height:1.8;color:var(--ink-faint);text-wrap:pretty">
-          ${t("apps.watch.note")}
-        </div>
+      </section>
+      <article class="mod dossier" id="app-detail"></article>
+      <div class="side">
+        <aside class="mod">
+          <div class="kick"><span class="code">B3</span><span class="t">${t("apps.watch")}</span></div>
+          <p class="prose sm">${t("apps.watch.sub", {
+            n: heaviest.length,
+            size: humanKb(heaviest.reduce((sum, a) => sum + a.size_kb, 0)),
+          })}</p>
+          <ul class="kv watch">
+            ${heaviest
+              .map(
+                (app) => `<li>
+                  <a class="l" href="#" data-focus="${esc(app.path)}">${esc(app.name)}</a>
+                  <span class="dots"></span>
+                  <span class="v">${humanKb(app.size_kb)}</span>
+                </li>`,
+              )
+              .join("")}
+          </ul>
+          <p class="note watch-note">${t("apps.watch.note")}</p>
+        </aside>
       </div>
     </div>`;
 
-  extra.innerHTML = `<a href="#" data-refresh="1" title="${t("apps.refresh.hint")}">${REFRESH_SVG} ${t("apps.refresh")}</a>`;
+  extra.innerHTML = `<a href="#" class="link mono plain" data-refresh="1" title="${t("apps.refresh.hint")}">${REFRESH_SVG} ${t("apps.refresh")}</a>`;
   // Manual refresh: clear both the backend caches and the client-side icon /
   // detail maps, then re-enter renderUninstall so the list is rebuilt from a
   // fresh scan. Clearing the client maps matters as much as the backend call
@@ -211,6 +215,10 @@ async function renderUninstall(container: HTMLElement, body: HTMLElement): Promi
     a.addEventListener("click", (ev) => {
       ev.preventDefault();
       sortKey = a.dataset.sort as "name" | "size";
+      // Visual only: the active sort reads as ink, the other stays a link.
+      body
+        .querySelectorAll<HTMLAnchorElement>("a[data-sort]")
+        .forEach((other) => other.classList.toggle("on", other === a));
       drawList();
     });
   });
@@ -233,7 +241,7 @@ async function renderUninstall(container: HTMLElement, body: HTMLElement): Promi
   if (initial) void focusApp(container, initial);
 }
 
-/** Static HTML for one directory row. */
+/** Static HTML for one directory row: checkbox | icon | name · meta · picked | size. */
 function rowHtml(app: AppInfo): string {
   const blocked = app.protected || app.official_uninstaller !== null;
   const why = app.protected
@@ -245,14 +253,15 @@ function rowHtml(app: AppInfo): string {
     <div class="head">
       <input type="checkbox" data-app="${esc(app.path)}" ${blocked ? "disabled" : ""}
         title="${esc(why || t("apps.selectHint"))}" />
-      <div class="avatar" data-avatar="${esc(app.path)}">${esc(app.name.slice(0, 1).toUpperCase())}</div>
-      <span class="title">${esc(app.name)}</span>
-      <span class="meta">${esc(app.version || "—")}${app.running ? ` · ${t("apps.active")}` : ""}${
-        why ? ` · ${esc(why)}` : ""
-      }</span>
-      <div class="spacer"></div>
-      <span class="summary" data-sum="${esc(app.path)}"></span>
-      <span class="size">${humanKb(app.size_kb)}</span>
+      <span class="icon" data-avatar="${esc(app.path)}">${esc(app.name.slice(0, 1).toUpperCase())}</span>
+      <span class="app-main">
+        <b class="name">${esc(app.name)}</b>
+        <span class="meta">${esc(app.version || "—")}${app.running ? ` · ${t("apps.active")}` : ""}${
+          why ? ` · ${esc(why)}` : ""
+        }</span>
+        <span class="picked" data-sum="${esc(app.path)}"></span>
+      </span>
+      <span class="num">${humanKb(app.size_kb)}</span>
     </div>
   </div>`;
 }
@@ -305,13 +314,19 @@ async function focusApp(container: HTMLElement, app: AppInfo): Promise<void> {
   const cached = detailCache.get(app.path);
   if (!cached) {
     el.innerHTML = `
-      <div class="det-name">${esc(app.name)}</div>
+      ${dossierKick()}
+      <h1 class="dossier-name">${esc(app.name)}</h1>
       <div class="placeholder">${t("apps.scanning")}</div>`;
   }
   const detail = cached ?? (await loadDetail(app.path));
   // A slower scan must not overwrite a dossier the user has since moved off.
   if (focused !== app.path || !el.isConnected) return;
   renderDossier(container, el, app, detail);
+}
+
+/** The dossier column's kicker: B2 · 档案. */
+function dossierKick(): string {
+  return `<div class="kick"><span class="code">B2</span><span class="t">${t("apps.dossier")}</span></div>`;
 }
 
 /** Fetch (once) the leftover detail for an app. */
@@ -370,54 +385,62 @@ function renderDossier(
   }
 
   const notes = detail.notes
-    .map((n) => `<div class="badge warn">${esc(n.note)}</div>`)
-    .join(" ");
+    .map((n) => `<span class="badge warn">${esc(n.note)}</span>`)
+    .join("");
 
   const rows = detail.items
     .map(
-      (i) => `<div class="det-item">
+      (i) => `<div class="tr det-item">
         <input type="checkbox" data-item="${esc(i.path)}" data-owner="${esc(app.path)}"
           ${checkedSet?.has(i.path) ? "checked" : ""} ${editable ? "" : "disabled"} />
         <span class="det-cat">${esc(categoryOf(i.path))}</span>
-        <span class="det-path" title="${esc(i.path)}">${esc(i.path)}</span>
-        <span class="det-size">${i.size_kb === null ? "?" : humanKb(i.size_kb)}</span>
+        <span class="det-path ell" title="${esc(i.path)}">${esc(i.path)}</span>
+        <span class="num">${i.size_kb === null ? "?" : humanKb(i.size_kb)}</span>
       </div>`,
     )
     .join("");
 
+  // Figure box (合计 + the uninstall action) above the per-category ledger,
+  // then the collapsible 逐项明细 strip — the tabloid dossier order.
   el.innerHTML = `
-    <div class="det-name">${esc(app.name)}</div>
-    <span class="det-apppath">${t("apps.version")} ${esc(app.version || "—")} · ${esc(app.path)}</span>
-    ${notes ? `<div class="note-list" style="margin-top:10px">${notes}</div>` : ""}
-    <div class="ledger rule" style="padding-top:14px">
-      ${[...groups.entries()]
-        .map(
-          ([name, bucket]) => `<div class="led">
-            <span>${esc(name)}${bucket.count > 1 ? ` · ${bucket.count} ${t("apps.files")}` : ""}</span>
-            <span class="dots"></span>
-            <span class="amt">${humanKb(bucket.kb)}</span>
-          </div>`,
-        )
-        .join("")}
-      <div class="led total">
-        <span class="label">${t("apps.grandTotal")}</span>
-        <span class="dots"></span>
-        <span class="amt">${humanKb(totalKb)}</span>
+    ${dossierKick()}
+    <h1 class="dossier-name">${esc(app.name)}</h1>
+    <p class="note dossier-path">${t("apps.version")} ${esc(app.version || "—")} · ${esc(app.path)}</p>
+    ${notes ? `<div class="note-list">${notes}</div>` : ""}
+    <div class="databox dossier-box">
+      <div class="cell">
+        <div class="cell-k">${t("apps.grandTotal")}</div>
+        <div class="fig md">${figHtml(totalKb)}</div>
+      </div>
+      <div class="cell cell-actions">
+        <button class="btn" id="det-remove">${t("apps.removeOne")} →</button>
+        <p class="note">${t("apps.removeNote")}</p>
       </div>
     </div>
-    <button class="link-cta md" id="det-remove" style="margin-top:12px">${t("apps.removeOne")} →</button>
-    <span class="muted" style="font-size:12px">${t("apps.removeNote")}</span>
-    <div class="det-card" style="margin-top:14px">
-      <div class="det-head">
-        <span style="font-weight:600;font-size:13px">${t("apps.detail.files", {
-          n: detail.items.length,
-        })}</span>
-        <div class="spacer"></div>
-        <span class="det-count" data-count></span>
-        <a href="#" class="det-toggle" data-toggle ${editable ? "" : "hidden"}></a>
+    <ul class="kv dossier-kv">
+      ${[...groups.entries()]
+        .map(
+          ([name, bucket]) => `<li>
+            <span class="l">${esc(name)}${bucket.count > 1 ? ` · ${bucket.count} ${t("apps.files")}` : ""}</span>
+            <span class="dots"></span>
+            <span class="v">${humanKb(bucket.kb)}</span>
+          </li>`,
+        )
+        .join("")}
+      <li class="total">
+        <span class="l">${t("apps.grandTotal")}</span>
+        <span class="dots"></span>
+        <span class="v">${humanKb(totalKb)}</span>
+      </li>
+    </ul>
+    <div class="det-card">
+      <div class="detail-box">
+        <b>${t("apps.detail.files", { n: detail.items.length })}</b>
+        <span class="num det-count" data-count></span>
+        <a href="#" class="link plain push" data-toggle ${editable ? "" : "hidden"}></a>
         <button class="chev" id="det-expand" title="${t("prev.expand")}">▾</button>
       </div>
-      <div id="det-items" hidden>${rows}</div>
+      <div class="tbl" id="det-items" hidden>${rows}</div>
     </div>`;
 
   const items = [...el.querySelectorAll<HTMLInputElement>("input[data-item]")];
@@ -534,11 +557,11 @@ function updateFooter(container: HTMLElement): void {
   }
   footer.style.display = "";
   footer.innerHTML = `
-    <span class="lead">${t("apps.selectedN", { n: paths.length })}</span>
-    <span class="mono muted" style="font-size:12.5px">${humanKb(totalKb)}</span>
-    <a href="#" id="clear-sel" style="font-size:12.5px">${t("apps.cancel")}</a>
-    <span class="grow"></span>
-    <button class="big-btn" id="remove">${esc(t("apps.removeN", { n: paths.length }))} →</button>`;
+    <span class="count">${t("apps.selectedN", { n: paths.length })}</span>
+    <span class="num">${humanKb(totalKb)}</span>
+    <a href="#" class="link plain" id="clear-sel">${t("apps.cancel")}</a>
+    <span class="dots"></span>
+    <button class="btn" id="remove">${esc(t("apps.removeN", { n: paths.length }))} →</button>`;
 
   footer.querySelector("#clear-sel")!.addEventListener("click", (ev) => {
     ev.preventDefault();
@@ -577,7 +600,7 @@ async function runRemoval(container: HTMLElement): Promise<void> {
   const kb = items
     .filter((i) => wanted.has(i.path))
     .reduce((sum, i) => sum + (i.size_kb ?? 0), 0);
-  const bodyEl = container.querySelector<HTMLElement>(".content-narrow")!;
+  const bodyEl = container.querySelector<HTMLElement>(".apps-page")!;
   confirmSheet(selection.length, kb, t("apps.remove"), () => {
     setNavMeta(null);
     runExecution(bodyEl, [{ planId: payload.summary.plan_id, selection }], { ledger: "apps" });
@@ -608,6 +631,13 @@ async function loadIcons(list: HTMLElement, apps: AppInfo[]): Promise<void> {
     }
   };
   await Promise.all([worker(), worker(), worker(), worker()]);
+}
+
+/** A size as a tabloid figure: serif number with the unit set small ("14.86<small>GB</small>"). */
+function figHtml(kb: number): string {
+  const text = humanKb(kb);
+  const match = /^([\d.]+)(\D+)$/.exec(text);
+  return match ? `${match[1]}<small>${match[2]}</small>` : esc(text);
 }
 
 /** Escape a value for use inside an attribute selector. */
@@ -707,6 +737,7 @@ function paintUpdates(body: HTMLElement, catalog: UpdateCatalog, stale: boolean)
   const inMole = visible.filter((update) => update.action !== "terminal");
   const terminal = visible.filter((update) => update.action === "terminal");
 
+  /** One update row: icon | name + source badge + notes chevron / version line | ignore | action. */
   const rowHtml = (update: AppUpdate, hiddenRow: boolean): string => {
     const chev = update.release_notes
       ? `<button class="chev" data-notes="${esc(update.id)}" title="${t("upd.notes")}">▾</button>`
@@ -716,11 +747,11 @@ function paintUpdates(body: HTMLElement, catalog: UpdateCatalog, stale: boolean)
       : update.action === "terminal"
         ? `<code class="upd-cmd" title="${t("upd.terminal")}">${esc(update.command_hint ?? t("upd.terminal"))}</code>`
         : `<button class="upd-btn" data-update="${esc(update.id)}" ${stale ? "disabled" : ""} title="${esc(actionLabel(update))}">${t("upd.update")} →</button>`;
-    return `<div class="upd-row">
-      <div class="avatar" data-upname="${esc(update.name)}">${esc(update.name.slice(0, 1).toUpperCase())}</div>
+    return `<div class="tr upd-row">
+      <span class="icon" data-upname="${esc(update.name)}">${esc(update.name.slice(0, 1).toUpperCase())}</span>
       <div class="info">
         <span class="title-line">
-          <span class="title">${esc(update.name)}</span>
+          <b class="name">${esc(update.name)}</b>
           <span class="badge">${esc(sourceLabel(update.source))}</span>
           ${chev}
         </span>
@@ -731,30 +762,37 @@ function paintUpdates(body: HTMLElement, catalog: UpdateCatalog, stale: boolean)
         </span>
         ${update.release_notes ? `<div class="notes" data-notesbody="${esc(update.id)}" style="display:none">${esc(update.release_notes)}</div>` : ""}
       </div>
-      <span class="spacer"></span>
       <a href="#" class="upd-ignore ${stale ? "disabled" : ""}" data-ignore="${esc(update.id)}" data-ignored="${hiddenRow}">${
         hiddenRow ? t("upd.unignore") : t("upd.ignoreRow")
       }</a>
-      ${action}
+      <span class="upd-act">${action}</span>
     </div>`;
   };
 
+  /** Module eyebrow for one group of rows (code, title, mono aside). */
+  const kick = (code: string, title: string, aside = ""): string =>
+    `<div class="kick"><span class="code">${code}</span><span class="t">${title}</span>${
+      aside ? `<span class="aside">${aside}</span>` : ""
+    }</div>`;
+
   const resultBlock = lastUpdateResults.length
-    ? `<div class="panel">${lastUpdateResults
+    ? `<div class="tbl upd-results">${lastUpdateResults
         .map(
           (result) =>
-            `<div class="row"><strong>${esc(result.outcome)}</strong><span>${esc(result.message)}</span></div>`,
+            `<div class="tr"><span class="badge ${result.outcome === "updated" ? "ok" : result.outcome === "failed" ? "danger" : ""}">${esc(result.outcome)}</span><span class="msg">${esc(result.message)}</span></div>`,
         )
         .join("")}</div>`
     : "";
   const upToDateBlock = catalog.up_to_date.length
-    ? `<details class="panel"><summary>${t("upd.uptodate")} (${catalog.up_to_date.length})</summary>
+    ? `<details class="fold uptodate"><summary><span>${t("upd.uptodate")}</span><span class="num muted">${catalog.up_to_date.length}</span><span class="chev">▸</span></summary>
+        <div class="tbl">
         ${catalog.up_to_date
           .map(
             (app) =>
-              `<div class="row"><span>${esc(app.name)}</span><span class="muted">${esc(app.version)} · ${esc(sourceLabel(app.source))}</span></div>`,
+              `<div class="tr c2"><span class="ell">${esc(app.name)}</span><span class="note">${esc(app.version)} · ${esc(sourceLabel(app.source))}</span></div>`,
           )
           .join("")}
+        </div>
       </details>`
     : "";
 
@@ -766,61 +804,68 @@ function paintUpdates(body: HTMLElement, catalog: UpdateCatalog, stale: boolean)
     bySource.set(key, (bySource.get(key) ?? 0) + 1);
   }
   const rail = `
-    <div class="col-side wide">
-      <span class="sec-label">${t("upd.sources")}</span>
-      <div class="ledger tight">
-        <div class="led"><span class="muted">${t("upd.source.head")}</span><span class="dots"></span><span class="amt dim">${t("upd.source.count")}</span></div>
-        ${[...bySource.entries()]
-          .sort((a, b) => b[1] - a[1])
-          .map(
-            ([name, n]) =>
-              `<div class="led"><span>${esc(name)}</span><span class="dots"></span><span class="amt">${n}</span></div>`,
-          )
-          .join("")}
-      </div>
-      ${
-        catalog.warnings.length
-          ? `<details class="rule-soft" style="padding-top:14px">
-              <summary style="font-size:12.5px;color:var(--rust);cursor:pointer">${t("upd.warnings")} · ${catalog.warnings.length} ▸</summary>
-              <div style="font-size:12px;line-height:1.7;color:var(--ink-faint);padding-top:8px">
-                ${catalog.warnings.map((warning) => `<div>${esc(warning)}</div>`).join("")}
-              </div>
-            </details>`
-          : ""
-      }
-      ${
-        hidden.length
-          ? `<div class="rule-soft" style="padding-top:12px;font-size:12px;color:var(--ink-faint)">${t(
-              "upd.hiddenCount",
-              { n: hidden.length },
-            )}</div>`
-          : ""
-      }
+    <div class="side">
+      <aside class="mod">
+        ${kick("B4", t("upd.sources"))}
+        <div class="tbl">
+          <div class="tr th c2"><span>${t("upd.source.head")}</span><span>${t("upd.source.count")}</span></div>
+          ${[...bySource.entries()]
+            .sort((a, b) => b[1] - a[1])
+            .map(
+              ([name, n]) =>
+                `<div class="tr c2"><span class="ell">${esc(name)}</span><span class="num">${n}</span></div>`,
+            )
+            .join("")}
+        </div>
+        ${
+          catalog.warnings.length
+            ? `<details class="fold warnings">
+                <summary><span class="link plain">${t("upd.warnings")} · ${catalog.warnings.length}</span><span class="chev">▸</span></summary>
+                <div class="note">
+                  ${catalog.warnings.map((warning) => `<div>${esc(warning)}</div>`).join("")}
+                </div>
+              </details>`
+            : ""
+        }
+        ${hidden.length ? `<p class="note side-foot">${t("upd.hiddenCount", { n: hidden.length })}</p>` : ""}
+      </aside>
     </div>`;
 
-  const header = `
-    <div class="upd-head">
-      <span class="lead">${t("upd.available")}</span>
-      <span class="count">${t("upd.count", { n: inMole.length })}</span>
-      <span class="grow"></span>
-      ${inMole.length && !stale ? `<a href="#" id="update-all" class="upd-all">${t("upd.updateAll")} →</a>` : ""}
-    </div>`;
+  const header = kick(
+    "B1",
+    t("upd.available"),
+    `${t("upd.count", { n: inMole.length })}${
+      inMole.length && !stale ? ` <a href="#" id="update-all" class="link plain upd-all">${t("upd.updateAll")} →</a>` : ""
+    }`,
+  );
 
   const main =
     visible.length === 0 && hidden.length === 0
       ? `<div class="placeholder">${catalog.warnings.length ? t("upd.noneKnown") : t("upd.none")}</div>`
       : `${header}
-        ${inMole.map((update) => rowHtml(update, false)).join("")}
-        ${terminal.length ? `<div class="upd-head sub"><span class="lead">${t("upd.packages")}</span><span class="count">${t("upd.count", { n: terminal.length })}</span></div>` : ""}
-        ${terminal.map((update) => rowHtml(update, false)).join("")}
-        ${terminal.length ? `<div class="muted" style="margin:8px 0;font-size:12px">${t("upd.hint")}</div>` : ""}
-        ${hidden.length ? `<div class="upd-head sub"><span class="lead">${t("upd.hidden")}</span><span class="count">${t("upd.count", { n: hidden.length })}</span></div>` : ""}
-        ${hidden.map((update) => rowHtml(update, true)).join("")}`;
+        <div class="tbl">${inMole.map((update) => rowHtml(update, false)).join("")}</div>
+        ${
+          terminal.length
+            ? `<div class="grp">
+                ${kick("B2", t("upd.packages"), t("upd.count", { n: terminal.length }))}
+                <div class="tbl">${terminal.map((update) => rowHtml(update, false)).join("")}</div>
+                <p class="note upd-hint">${t("upd.hint")}</p>
+              </div>`
+            : ""
+        }
+        ${
+          hidden.length
+            ? `<div class="grp">
+                ${kick("B3", t("upd.hidden"), t("upd.count", { n: hidden.length }))}
+                <div class="tbl">${hidden.map((update) => rowHtml(update, true)).join("")}</div>
+              </div>`
+            : ""
+        }`;
 
   body.innerHTML = `
     ${resultBlock}
-    <div class="cols">
-      <div class="col-main">${main}${upToDateBlock}</div>
+    <div class="grid split wide-side upd-grid">
+      <section class="mod">${main}${upToDateBlock}</section>
       ${rail}
     </div>`;
 
@@ -952,14 +997,16 @@ async function renderLogin(body: HTMLElement): Promise<void> {
 
   const serviceRows = services
     .map(
-      (item: LoginItem, idx: number) => `<div class="li-row">
-        <div class="li-icon">▸</div>
-        <span class="li-title">${esc(item.label)}</span>
-        <span class="li-sub">${item.path.includes("LaunchDaemons") ? t("login.daemon") : t("login.agent")} · ${esc(item.program ?? item.label)}
-          ${item.program !== null && !item.program_exists ? ` · <span class="badge danger">${t("login.orphan")}</span>` : ""}
+      (item: LoginItem, idx: number) => `<div class="tr li-row">
+        <span class="li-glyph">▸</span>
+        <span class="li-main">
+          <span class="li-title ell">${esc(item.label)}</span>
+          <span class="li-sub">
+            <span class="ell">${item.path.includes("LaunchDaemons") ? t("login.daemon") : t("login.agent")} · ${esc(item.program ?? item.label)}</span>
+            ${item.program !== null && !item.program_exists ? `<span class="badge danger">${t("login.orphan")}</span>` : ""}
+          </span>
         </span>
-        <span class="spacer"></span>
-        <button class="chev" data-reveal="${esc(item.path)}" title="Finder">↗</button>
+        <button class="reveal" data-reveal="${esc(item.path)}" title="Finder">↗</button>
         <button class="toggle ${item.enabled ? "on" : ""}" data-toggle="${idx}"
           ${item.scope === "system" ? `disabled title="${t("login.admin.toggle")}"` : ""}></button>
       </div>`,
@@ -968,14 +1015,15 @@ async function renderLogin(body: HTMLElement): Promise<void> {
 
   const embeddedRows = embedded
     .map(
-      (item: EmbeddedLoginItem, idx: number) => `<div class="li-row">
-        <div class="li-icon" data-liicon="${idx}"></div>
-        <span class="li-title">${esc(item.app_name)}</span>
-        <span class="li-sub">${esc(item.item_name)} · ${
-          item.kind === "login" ? t("login.kind.login") : t("login.kind.helper")
-        } · ${t("login.embedded")}</span>
-        <span class="spacer"></span>
-        <button class="chev" data-reveal="${esc(item.app_path)}" title="Finder">↗</button>
+      (item: EmbeddedLoginItem, idx: number) => `<div class="tr li-row">
+        <span class="icon" data-liicon="${idx}">${esc(item.app_name.slice(0, 1).toUpperCase())}</span>
+        <span class="li-main">
+          <span class="li-title ell">${esc(item.app_name)}</span>
+          <span class="li-sub"><span class="ell">${esc(item.item_name)} · ${
+            item.kind === "login" ? t("login.kind.login") : t("login.kind.helper")
+          } · ${t("login.embedded")}</span></span>
+        </span>
+        <button class="reveal" data-reveal="${esc(item.app_path)}" title="Finder">↗</button>
         <span class="li-ro">${t("login.readonly")}</span>
       </div>`,
     )
@@ -983,29 +1031,31 @@ async function renderLogin(body: HTMLElement): Promise<void> {
 
   const enabled = services.filter((item) => item.enabled).length;
 
+  // Main module: B1 services (toggles) over B2 embedded helpers (read-only);
+  // the rail carries the 随系统启动 figure and the explanation.
   body.innerHTML = `
-    <div class="cols">
-      <div class="col-main">
-        <div class="li-head">
-          <span>${t("login.services.head")}</span>
-          <span class="muted">${t("login.onHint")}</span>
+    <div class="grid split login-grid">
+      <section class="mod">
+        <div class="kick">
+          <span class="code">B1</span><span class="t">${t("login.services.head")}</span>
+          <span class="aside">${t("login.onHint")}</span>
         </div>
-        ${serviceRows || `<div class="muted" style="font-size:12.5px">${t("login.none")}</div>`}
-        <div class="li-head">
-          <span>${t("login.items.head")} <span class="muted">${t("login.confirmOnly")}</span></span>
-          <span class="muted">${embedded.length} ${t("login.count")}</span>
+        <div class="tbl">${serviceRows || `<p class="note">${t("login.none")}</p>`}</div>
+        <div class="grp">
+          <div class="kick">
+            <span class="code">B2</span><span class="t">${t("login.items.head")} · ${t("login.confirmOnly")}</span>
+            <span class="aside">${embedded.length} ${t("login.count")}</span>
+          </div>
+          <div class="tbl">${embeddedRows || `<p class="note">${t("login.none")}</p>`}</div>
         </div>
-        ${embeddedRows || `<div class="muted" style="font-size:12.5px">${t("login.none")}</div>`}
-      </div>
-      <div class="col-side">
-        <div>
-          <div class="sec-label">${t("login.autostart")}</div>
-          <div class="figure sm">${enabled} <small>/ ${total}</small></div>
-        </div>
-        <p class="lede" style="font-size:12.5px;line-height:1.7">${t("login.explain")}</p>
-        <div class="rule-soft" style="padding-top:12px;font-size:12px;color:var(--ink-faint)">
-          ${t("login.admin.toggle")}
-        </div>
+      </section>
+      <div class="side">
+        <aside class="mod">
+          <div class="kick"><span class="code">B3</span><span class="t">${t("login.autostart")}</span></div>
+          <div class="fig md">${enabled}<small>/ ${total}</small></div>
+          <p class="prose sm login-explain">${t("login.explain")}</p>
+          <p class="note side-foot">${t("login.admin.toggle")}</p>
+        </aside>
       </div>
     </div>`;
 

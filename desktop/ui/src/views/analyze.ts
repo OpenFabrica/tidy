@@ -402,10 +402,10 @@ function renderListing(container: HTMLElement, listing: DirListing): void {
     const width = Math.max(1, Math.round((kb / maxKb) * 100));
     return `<div class="bar-row ${path ? "dir" : ""} ${lead ? "lead" : ""}" ${path ? `data-dir="${esc(path)}"` : ""}>
       <div class="bar-line">
-        <span class="bar-name">${esc(name)}</span>
-        <span class="bar-size">${humanKb(kb)} · ${share}%</span>
+        <span class="bar-name ${path ? "" : "muted"}">${esc(name)}</span>
+        <span class="bar-size num">${humanKb(kb)} · ${share}%</span>
       </div>
-      <div class="bar" style="width:${width}%;background:${BARS[Math.min(idx, BARS.length - 1)]}"></div>
+      <div class="bar"><i style="width:${width}%;background:${BARS[Math.min(idx, BARS.length - 1)]}"></i></div>
     </div>`;
   };
 
@@ -424,73 +424,116 @@ function renderListing(container: HTMLElement, listing: DirListing): void {
   const railRows = leadListing
     ? [
         ...leadListing.entries.slice(0, 4).map(
-          (e) => `<div class="led">
-            <span>${esc(e.name)}</span><span class="dots"></span>
-            <span class="amt">${humanKb(e.size_kb)}</span>
-          </div>`,
+          (e) => `<li><span class="l">${esc(e.name)}</span><span class="dots"></span>
+            <span class="v">${humanKb(e.size_kb)}</span></li>`,
         ),
         leadListing.entries.length > 4
-          ? `<div class="led"><span class="muted">${t("ana.restN", {
+          ? `<li><span class="l muted">${t("ana.restN", {
               n: leadListing.entries.length - 4,
-            })}</span><span class="dots"></span><span class="amt dim">${humanKb(
+            })}</span><span class="dots"></span><span class="v muted">${humanKb(
               leadListing.entries.slice(4).reduce((sum, e) => sum + e.size_kb, 0),
-            )}</span></div>`
+            )}</span></li>`
           : "",
       ].join("")
-    : `<div class="led"><span class="muted">${t("ana.railUnscanned")}</span></div>`;
+    : `<li><span class="l muted">${t("ana.railUnscanned")}</span></li>`;
 
+  // Tabloid spread: folio, a ticker of disk and folder totals, the ranked
+  // module beside a rail of two modules (lead child preview, trash
+  // checklist), and the whole-disk strip as the page's footer rule.
   container.innerHTML = `
-    <div class="ana-layout">
-      <div class="col-main">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:16px">
-          <div class="crumbs">${breadcrumbs(listing.root)}</div>
-          <span class="mono muted" style="font-size:12px;white-space:nowrap;flex-shrink:0">
-            ${entries.length} ${t("ana.items")} · ${humanKb(listing.total_kb)}
-            ${listing.truncated ? `<span class="badge warn">${t("ana.cancelled")}</span>` : ""}
-          </span>
-        </div>
-        <div class="rule" style="padding-top:16px">
-          ${viewMode === "ledger" ? `<div style="display:flex;flex-direction:column;gap:14px">${bars}</div>` : `<div class="treemap" id="treemap"></div>`}
-        </div>
-        <span class="muted" style="font-size:12px">${t("ana.hint")}</span>
+    <div class="page ana-page">
+      <div class="folio">
+        <span class="issue">${esc(t("ana.kicker"))}</span>
+        <span>${esc(t("ana.strapline"))}</span>
       </div>
-      <div class="col-main col-rule" style="flex:0 0 330px">
-        <div class="rail-title">
-          ${leadEntry ? `${esc(leadEntry.name)} <span class="unit">${t("ana.inside")}</span>` : t("ana.selection")}
-        </div>
-        <div class="ledger tight rule" style="padding-top:14px">${railRows}</div>
-        ${leadEntry ? `<button class="link-cta sm" id="enter-lead">${t("ana.enter", { name: leadEntry.name })} →</button>` : ""}
-        <button class="link-quiet" id="trash-selected" disabled>${t("ana.trash")}</button>
-        <div class="rule-soft" style="padding-top:14px">
-          <div class="sec-label" style="margin-bottom:8px">${t("ana.pick")}</div>
-          <div class="ledger tight">
-            ${entries
-              .slice(0, 10)
-              .map(
-                (e) => `<div class="led center">
-                  <input type="checkbox" data-path="${esc(e.path)}" />
-                  <span class="note" style="font-size:12.5px;color:var(--ink)">${esc(e.name)}</span>
-                  <span class="dots"></span>
-                  <span class="amt dim">${humanKb(e.size_kb)}</span>
-                </div>`,
-              )
-              .join("")}
+      <section class="band">
+        <div class="ticker four">
+          <div class="tick" data-disk="total">
+            <div class="tick-k">${t("ana.diskTotal")}</div>
+            <div class="tick-v">…</div>
+          </div>
+          <div class="tick" data-disk="used">
+            <div class="tick-k">${t("ana.diskUsed")}</div>
+            <div class="tick-v">…</div>
+          </div>
+          <div class="tick" data-disk="free">
+            <div class="tick-k">${t("ana.diskFree")}</div>
+            <div class="tick-v">…</div>
+          </div>
+          <div class="tick">
+            <div class="tick-k">${t("ana.dir")} · ${esc(tildify(listing.root))}</div>
+            <div class="tick-v">${sizeFigure(humanKb(listing.total_kb))}</div>
           </div>
         </div>
+      </section>
+      <div class="grid split wide-side">
+        <section class="mod">
+          <div class="kick"><span class="code">D1</span><span class="t">${esc(
+            viewMode === "ledger" ? t("ana.ledgerKick") : t("ana.viewTreemap"),
+          )}</span></div>
+          <div class="ana-head">
+            <h1 class="crumbs">${breadcrumbs(listing.root)}</h1>
+            <span class="ana-count">
+              ${entries.length} ${t("ana.items")} · ${humanKb(listing.total_kb)}
+              ${listing.truncated ? `<span class="badge warn">${t("ana.cancelled")}</span>` : ""}
+            </span>
+          </div>
+          ${
+            viewMode === "ledger"
+              ? `<div class="ana-bars">${bars}</div>`
+              : `<div class="treemap" id="treemap"></div>`
+          }
+          <p class="note ana-hint">${t("ana.hint")}</p>
+        </section>
+        <div class="side">
+          <aside class="mod">
+            <div class="kick">
+              <span class="code">D2</span>
+              <span class="t">${leadEntry ? `${esc(leadEntry.name)} ${t("ana.inside")}` : t("ana.selection")}</span>
+              ${leadEntry ? `<span class="aside">${humanKb(leadEntry.size_kb)}</span>` : ""}
+            </div>
+            <ul class="kv">${railRows}</ul>
+            ${
+              leadEntry
+                ? `<div class="act-row"><button class="btn sm" id="enter-lead">${esc(
+                    t("ana.enter", { name: leadEntry.name }),
+                  )} →</button></div>`
+                : ""
+            }
+          </aside>
+          <aside class="mod">
+            <div class="kick"><span class="code">D3</span><span class="t">${t("ana.pick")}</span></div>
+            <div class="tbl">
+              ${entries
+                .slice(0, 10)
+                .map(
+                  (e) => `<div class="tr pick">
+                    <input type="checkbox" data-path="${esc(e.path)}" />
+                    <span class="ell">${esc(e.name)}</span>
+                    <span class="num">${humanKb(e.size_kb)}</span>
+                  </div>`,
+                )
+                .join("")}
+            </div>
+            <div class="act-row"><button class="link" id="trash-selected" disabled>${t("ana.trash")}</button></div>
+          </aside>
+        </div>
       </div>
-    </div>
-    <div class="disk-strip" id="disk-strip">
-      <span>${t("ana.disk")}</span>
-      <div class="strip" id="strip"></div>
-      <span id="disk-label">…</span>
+      <div class="disk-strip" id="disk-strip">
+        <span class="disk-k">${t("ana.disk")}</span>
+        <div class="strip" id="strip"></div>
+        <span id="disk-label">…</span>
+      </div>
     </div>`;
 
+  // The cached stamp is wrapped in .long so a narrow masthead keeps just the
+  // two links.
   setNavMeta(
     `${
       cachedAt.has(listing.root)
-        ? esc(t("ana.cached", { time: fmtTime(cachedAt.get(listing.root)!) }))
+        ? `<span class="long">${esc(t("ana.cached", { time: fmtTime(cachedAt.get(listing.root)!) }))} · </span>`
         : ""
-    } <a href="#" id="toggle-view">${esc(viewMode === "ledger" ? t("ana.viewTreemap") : t("ana.viewLedger"))}</a> · <a href="#" id="rescan">${esc(t("ana.refresh"))}</a>`,
+    }<a href="#" id="toggle-view">${esc(viewMode === "ledger" ? t("ana.viewTreemap") : t("ana.viewLedger"))}</a> · <a href="#" id="rescan">${esc(t("ana.refresh"))}</a>`,
   );
   document.getElementById("toggle-view")?.addEventListener("click", (ev) => {
     ev.preventDefault();
@@ -549,7 +592,8 @@ function renderListing(container: HTMLElement, listing: DirListing): void {
   });
 }
 
-/** Whole-disk footer strip: used vs available on the boot volume. */
+/** Whole-disk figures: the footer strip (used vs available on the boot
+ * volume) and the ticker's three disk cells, from one status snapshot. */
 async function renderDiskStrip(container: HTMLElement): Promise<void> {
   const strip = container.querySelector<HTMLElement>("#strip");
   const label = container.querySelector<HTMLElement>("#disk-label");
@@ -561,13 +605,29 @@ async function renderDiskStrip(container: HTMLElement): Promise<void> {
     const used = root.total_bytes - root.available_bytes;
     const usedPct = (used / root.total_bytes) * 100;
     strip.innerHTML = `
-      <div style="width:${usedPct.toFixed(1)}%;background:var(--rust)"></div>
-      <div style="flex:1;background:var(--wash-1);border:1px dashed var(--ink-ghost);box-sizing:border-box"></div>`;
+      <div class="used" style="width:${usedPct.toFixed(1)}%"></div>
+      <div class="free"></div>`;
     label.textContent = `${t("st.used")} ${humanBytes(used)} · ${t("st.avail")} ${humanBytes(root.available_bytes)}`;
+    const figures: Record<string, number> = {
+      total: root.total_bytes,
+      used,
+      free: root.available_bytes,
+    };
+    container.querySelectorAll<HTMLElement>("[data-disk]").forEach((tick) => {
+      tick.querySelector(".tick-v")!.innerHTML = sizeFigure(humanBytes(figures[tick.dataset.disk!]));
+    });
   } catch {
-    // The strip is context, not content: a failed snapshot just leaves it out.
+    // The disk figures are context, not content: a failed snapshot just
+    // leaves them out.
     container.querySelector("#disk-strip")?.remove();
+    container.querySelectorAll("[data-disk]").forEach((tick) => tick.remove());
   }
+}
+
+/** A size like "412.30GB" set as a ticker figure: numeral, small unit. */
+function sizeFigure(text: string): string {
+  const [num, unit] = splitUnit(text);
+  return `${esc(num)}${unit ? `<small>${esc(unit)}</small>` : ""}`;
 }
 
 /** Fill the treemap area: top blocks + one aggregate block for the tail. */

@@ -1,6 +1,6 @@
-// Clean view (newspaper skin): a front-page hero — issue kicker, serif
-// headline, lede, framed CTA and a monospaced statline drawn from the local
-// ledger — then one merged scan (system clean + project build artifacts +
+// Clean view (tabloid skin): the shared front page — issue folio, a ticker
+// band drawn from the local ledger, the lead headline with its solid CTA and
+// the 编者按 module — then one merged scan (system clean + project build artifacts +
 // installer leftovers + docker + simulators + Trash contents + orphaned leftovers +
 // command-backed tools) → ledger preview → confirm → execute →
 // reclaimed-space page. Every extra plan keeps its own backend plan/execute
@@ -61,13 +61,13 @@ export const clean: View = {
     // so the masthead conceit stays factual instead of decorative.
     const issue = reclaimLog().filter((r) => r.kind === "clean").length + 1;
     const total = totalFreedKb();
+    const issueLine = t("clean.issue", { n: issue });
 
     const scanButton = renderFrontPage(container, {
-      kicker: t("clean.issue", { n: issue }),
+      kicker: issueLine,
       strapline: t("clean.strapline"),
-      // The plate number is the issue number, so the numeral on the page and
-      // the one in the kicker are always the same fact.
-      watermark: String(issue),
+      // The tabloid prints no plate numeral; the issue lives in the folio.
+      watermark: "",
       headlineHtml: t("clean.headline"),
       desk: t("clean.desk"),
       dateline: dateline(),
@@ -117,6 +117,7 @@ export const clean: View = {
       const trashPaths = new Set<string>();
       renderFlow(container, newTaskId(), {
         title: t("prev.header"),
+        issue: issueLine,
         verb: t("clean.go"),
         helperAvailable: meta.helper_available,
         home: meta.home,
@@ -134,7 +135,7 @@ export const clean: View = {
               size: humanKb(blocked.total_kb),
               n: blocked.count,
             });
-            parts.push(`<p class="lede" style="margin-top:6px">${hint}</p>`);
+            parts.push(`<p class="note">${hint}</p>`);
           }
           // Project git blockers stay report-only badges, never a verdict.
           const flagged = projects.filter((p) => p.blockers.length > 0);
@@ -143,11 +144,11 @@ export const clean: View = {
               `<div class="note-list">${flagged
                 .map(
                   (p) =>
-                    `<div class="badge warn" title="${esc(p.root)}">${esc(shorten(p.root))}: ${esc(
+                    `<span class="badge warn" title="${esc(p.root)}">${esc(shorten(p.root))}: ${esc(
                       p.blockers.join(", "),
-                    )}</div>`,
+                    )}</span>`,
                 )
-                .join(" ")}</div>`,
+                .join("")}</div>`,
             );
           }
           return parts.join("");
@@ -285,7 +286,7 @@ export const clean: View = {
           if (job.planId === toolsPlanId) return executeTools(job.planId, job.selection, onItem);
           return undefined;
         },
-        afterDone: (body, result) => renderTrashPending(body, result.trashedKb),
+        afterDone: (body, result) => renderTrashPending(body, result.trashedKb, issueLine),
         plan: async (taskId, onLabel) => {
           // All scans run in parallel. The clean scan is the primary: its
           // failure (including cancel) aborts the flow; any secondary failure
@@ -344,25 +345,26 @@ export const clean: View = {
  * After a Trash-mode run nothing is actually freed until the Trash is emptied.
  * Say so on the done page and offer a one-click empty that goes through the
  * same plan → confirm → execute funnel as everything else (permanent by
- * construction: the backend never Trash-routes the trash plan).
+ * construction: the backend never Trash-routes the trash plan). The note
+ * sits in the done page's databox, beside the freed figure it qualifies.
  */
-function renderTrashPending(body: HTMLElement, trashedKb: number): void {
+function renderTrashPending(body: HTMLElement, trashedKb: number, issue: string): void {
   if (trashedKb <= 0) return;
-  const hero = body.querySelector<HTMLElement>(".hero");
-  if (!hero) return;
+  const slot = body.querySelector<HTMLElement>(".done-lede");
+  if (!slot) return;
   const note = document.createElement("div");
   note.className = "trash-pending";
   note.innerHTML = `
-    <p class="sub">${esc(t("flow.trashPending", { size: humanKb(trashedKb) }))}</p>
-    <button class="link-cta" id="empty-trash">${esc(t("flow.emptyTrash"))} →</button>`;
-  hero.appendChild(note);
+    <p class="prose">${esc(t("flow.trashPending", { size: humanKb(trashedKb) }))}</p>
+    <button class="link" id="empty-trash">${esc(t("flow.emptyTrash"))} →</button>`;
+  slot.appendChild(note);
   const button = note.querySelector<HTMLButtonElement>("#empty-trash")!;
   button.addEventListener("click", async () => {
     button.disabled = true;
     try {
       const plan = await planTrash(newTaskId());
       if (plan.count === 0) {
-        note.innerHTML = `<p class="sub">${esc(t("flow.trashEmpty"))}</p>`;
+        note.innerHTML = `<p class="prose">${esc(t("flow.trashEmpty"))}</p>`;
         return;
       }
       const selection = plan.sections.flatMap((s) => s.items.map((i) => i.id));
@@ -370,7 +372,7 @@ function renderTrashPending(body: HTMLElement, trashedKb: number): void {
         plan.count,
         plan.total_kb,
         t("flow.emptyTrash"),
-        () => runExecution(body, [{ planId: plan.plan_id, selection }], { ledger: "clean" }),
+        () => runExecution(body, [{ planId: plan.plan_id, selection }], { ledger: "clean", issue }),
         t("flow.confirm.trash", { n: plan.count }),
       );
     } finally {
