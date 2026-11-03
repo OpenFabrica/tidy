@@ -3,6 +3,7 @@
 #
 #   make release                       # uses the defaults below
 #   NOTARY_PROFILE=xxx make release    # different notarytool keychain profile
+#   TIDY_SKIP_GATES=1 make release     # local test build off master / with changes
 #
 # Credentials, either of:
 #   a) a .env file (repo root or desktop/, git-ignored) with
@@ -20,6 +21,15 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."   # desktop/
+
+# 发版门禁（scripts/release-gates.sh）：在 master、已推送、无未提交改动、
+# 版本号一致且未发过。放在最前面，免得编译十几分钟后才发现不该发。
+# 本地试构建可以跳过；publish 那一步的门禁不能跳过。
+if [ "${TIDY_SKIP_GATES:-}" = "1" ]; then
+  echo "⚠ TIDY_SKIP_GATES=1：跳过发版门禁。这次的产物只能本地试用，make publish 会拒绝不合格的产物。" >&2
+else
+  scripts/release-gates.sh build
+fi
 
 # Load credentials from .env (desktop/.env wins over the repo root one).
 for envfile in ../.env .env; do

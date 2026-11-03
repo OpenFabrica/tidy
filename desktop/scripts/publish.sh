@@ -14,6 +14,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."   # desktop/
 
+# 发版门禁：仓库状态、版本号、标签、产物版本。这一步发出去所有用户都会收到
+# 更新提示，所以没有跳过开关。
+scripts/release-gates.sh publish
+
 REPO="${REPO:-OpenFabrica/tidy}"
 CONF="src-tauri/tauri.conf.json"
 VERSION="$(python3 -c "import json;print(json.load(open('$CONF'))['version'])")"
@@ -99,8 +103,10 @@ if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
     --repo "$REPO" --clobber
 else
   echo "▶ 创建 release $TAG"
+  # 标签钉在当前提交上（门禁已确认它就是 origin/master），不让 GitHub
+  # 去取远端默认分支在那一刻的最新提交。
   gh release create "$TAG" "$DMG" "$STABLE_DMG" "$TARBALL" "$SIGFILE" "$LATEST_JSON" \
-    --repo "$REPO" --title "Tidy $VERSION" --notes "$NOTES"
+    --repo "$REPO" --title "Tidy $VERSION" --notes "$NOTES" --target "$(git rev-parse HEAD)"
 fi
 
 echo "✅ 已发布：https://github.com/$REPO/releases/tag/$TAG"

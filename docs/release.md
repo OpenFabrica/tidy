@@ -42,10 +42,18 @@ git diff --stat            # 应该正好是上表 5 个文件
 
 ## 发版步骤
 
-1. **门禁。** 任一不过就停：
-   - 在 `master` 上，且已推送：`git status -sb` 显示 `## master...origin/master`，没有 ahead/behind。
-   - 已跟踪文件没有未提交改动：`git status --porcelain --untracked-files=no` 为空。
-   - `make check` 通过。
+1. **门禁。** `make release` 和 `make publish` 开头会自动跑 `desktop/scripts/release-gates.sh`，任一项不过就停：
+   - 当前分支是 `master`；
+   - 已跟踪文件没有未提交改动；
+   - `HEAD` 与 `origin/master` 一致（已推送、不落后）；
+   - 5 个文件的版本号一致，且是 `X.Y.Z` 格式；
+   - 标签 `v<版本>` 还不存在，或者已经指向当前提交（同一次发版重试）；
+   - 只在 `publish` 时：产物是 universal 包，`Tidy.app` 的版本号和 DMG 文件名都等于源码版本号。
+
+   发版前可以单独自查：`desktop/scripts/release-gates.sh build`。
+   `make check` 不在门禁里（太慢），发版前手动跑一次。
+   本地试构建（不在 master、有未提交改动）用 `TIDY_SKIP_GATES=1 make release` 跳过构建门禁；
+   这样出的包过不了 `make publish` 的门禁。`make publish` 没有跳过开关。
 2. **起草发布说明。** 按 `git log v<上一版>..HEAD` 起草。面向用户，按区域分组（界面、清理、Docker、状态、安全……），一行一条；
    涉及删除策略时单列「安全」一组，写清楚有没有放宽。格式照 v0.1.3、v0.1.4 的 Release。
    **给用户看过再定稿。** 定稿存成临时文件（如 `/tmp/tidy-<版本>-notes.md`），不进 git。
@@ -61,7 +69,7 @@ git diff --stat            # 应该正好是上表 5 个文件
    lipo -archs macos/Tidy.app/Contents/MacOS/mole-helper                 # x86_64 arm64
    ls macos/Tidy.app.tar.gz macos/Tidy.app.tar.gz.sig                    # 自更新包和签名都在
    ```
-6. **发布：`NOTES_FILE=/tmp/tidy-<版本>-notes.md make publish`。** 这一步会在 `master` 当前提交上创建标签 `v<版本>` 和 Release，
+6. **发布：`NOTES_FILE=/tmp/tidy-<版本>-notes.md make publish`。** 这一步会在当前提交上（门禁已确认它就是 `origin/master`）创建标签 `v<版本>` 和 Release，
    并上传 DMG、固定文件名的 `Tidy.dmg`、自更新包、签名和 `latest.json`。
    **发布前先问用户**（发出去所有用户都会收到更新提示）。用户说「发布」就算同意。
    - 要强制所有人升级到某个版本以上：加 `MINIMUM_VERSION=<版本>`。低于它的版本会弹出关不掉的更新提示。只在有安全问题时用。
@@ -93,4 +101,3 @@ git diff --stat            # 应该正好是上表 5 个文件
   现在的做法：发版前才把版本号从上一版改到新版。
 - **`CHANGELOG.md`。** 现在的发布说明只在 GitHub Release 里，仓库里没有更新日志文件。
 - **注释标签。** 现在的标签由 `gh release create` 创建，是轻量标签。
-- **门禁写进脚本。** 现在第 1 步的检查靠手动做，`release.sh` / `publish.sh` 不检查分支和工作区。
