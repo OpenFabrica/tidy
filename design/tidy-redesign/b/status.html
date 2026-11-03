@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidy · 状态 · 方案 B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b.css">
+</head>
+<body>
+<header class="mast">
+  <span class="mast-word">TIDY</span>
+  <nav class="mast-tabs">
+    <a class="mast-tab" href="clean-home.html"><span class="pg">A1</span>清理</a>
+    <a class="mast-tab" href="apps.html"><span class="pg">B1</span>软件</a>
+    <a class="mast-tab" href="optimize.html"><span class="pg">C1</span>优化</a>
+    <a class="mast-tab" href="analyze.html"><span class="pg">D1</span>分析</a>
+    <a class="mast-tab on" href="status.html"><span class="pg">E1</span>状态</a>
+  </nav>
+  <span class="mast-meta">M3 Pro<span class="long"> · 36 GB · macOS 15.1</span></span>
+</header>
+<div class="mast-rules"></div>
+
+<main class="page">
+  <div class="folio">
+    <span class="issue">实时行情 · 每 2 秒刷新</span>
+    <span>M3 Pro · 36 GB · macOS 15.1</span>
+  </div>
+
+  <section class="band">
+    <div class="ticker">
+      <div class="tick">
+        <div class="tick-k">CPU 52°C · 12 核</div>
+        <div class="tick-v">23<small>%</small></div>
+        <div class="tick-chart"><div class="cores"><i style="height: 62%;"></i><i style="height: 48%;"></i><i style="height: 35%;"></i><i style="height: 30%;"></i><i style="height: 22%;"></i><i style="height: 18%;"></i><i style="height: 14%;"></i><i style="height: 12%;"></i><i style="height: 9%;"></i><i style="height: 8%;"></i><i style="height: 6%;"></i><i style="height: 4%;"></i></div></div>
+      </div>
+      <div class="tick">
+        <div class="tick-k">内存 · 压力 12%</div>
+        <div class="tick-v">68<small>%</small></div>
+        <div class="tick-chart" style="padding-top: 7px;"><div class="meter"><i style="width: 68%;"></i></div></div>
+      </div>
+      <div class="tick">
+        <div class="tick-k">GPU 48°C · 18 GPU 核 · 低负载</div>
+        <div class="tick-v">14<small>%</small></div>
+        <div class="tick-chart"><svg class="spark" viewBox="0 0 120 22" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,18 10,17 20,19 30,15 40,16 50,12 60,14 70,17 80,13 90,15 100,11 110,14 120,13" fill="none" stroke="#6d675a" stroke-width="1.2" vector-effect="non-scaling-stroke"></polyline></svg></div>
+      </div>
+      <div class="tick">
+        <div class="tick-k">磁盘 · 已用 72%</div>
+        <div class="tick-v">282<small>GB</small></div>
+        <div class="tick-chart" style="padding-top: 7px;"><div class="meter"><i style="width: 72%;"></i></div></div>
+      </div>
+      <div class="tick">
+        <div class="tick-k">网络 · en0 · ↑48KB</div>
+        <div class="tick-v">1.2<small>MB/s</small></div>
+        <div class="tick-chart"><svg class="spark" viewBox="0 0 120 22" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,22 0,16 12,14 24,17 36,9 48,12 60,6 72,10 84,13 96,8 108,11 120,9 120,22" fill="#e0d5c2"></polygon><polyline points="0,20 12,19 24,20 36,18 48,19 60,17 72,19 84,18 96,19 108,17 120,18" fill="none" stroke="#26241f" stroke-width="1" vector-effect="non-scaling-stroke"></polyline></svg></div>
+      </div>
+      <div class="tick">
+        <div class="tick-k">电池 ⚡ · 312 次循环</div>
+        <div class="tick-v">87<small>%</small></div>
+        <div class="tick-s">风扇 2400 RPM ×2</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <section class="mod">
+      <div class="kick"><span class="code">E1</span><span class="t">进程 · 按 CPU</span><span class="aside">%</span></div>
+      <ul class="kv">
+        <li><span class="l">mds_stores</span><span class="dots"></span><span class="v hot-v">104.2</span></li>
+        <li><span class="l">OrbStack Helper</span><span class="dots"></span><span class="v">34.2</span></li>
+        <li><span class="l">WindowServer</span><span class="dots"></span><span class="v">18.4</span></li>
+        <li><span class="l">Google Chrome Helper</span><span class="dots"></span><span class="v">12.7</span></li>
+        <li><span class="l">Tidy</span><span class="dots"></span><span class="v">6.1</span></li>
+      </ul>
+    </section>
+    <section class="mod">
+      <div class="kick"><span class="code">E2</span><span class="t">进程 · 按内存</span></div>
+      <ul class="kv">
+        <li><span class="l">OrbStack Helper</span><span class="dots"></span><span class="v">4.39GB</span></li>
+        <li><span class="l">kernel_task</span><span class="dots"></span><span class="v">3.12GB</span></li>
+        <li><span class="l">Google Chrome Helper</span><span class="dots"></span><span class="v">1.82GB</span></li>
+        <li><span class="l">Code Helper (Renderer)</span><span class="dots"></span><span class="v">912.5MB</span></li>
+        <li><span class="l">Slack Helper</span><span class="dots"></span><span class="v">684.2MB</span></li>
+      </ul>
+    </section>
+    <section class="mod span-all-narrow">
+      <div class="kick"><span class="code">E3</span><span class="t">健康度</span></div>
+      <div class="fig md">92<small>/ 良好</small></div>
+      <p class="prose sm" style="margin-top: 10px;">各项指标正常</p>
+      <p class="note">已运行 4d 12h · 自 10/30</p>
+    </section>
+
+    <section class="mod span-all rule-ink">
+      <div class="kick"><span class="code">E4</span><span class="t">进程全表 · 60 项</span><span class="aside">点击行查看详情</span></div>
+      <div class="tbl">
+        <div class="tr th proc">
+          <span></span>
+          <span><a href="#">名称 (60) ⇅</a></span>
+          <span class="num th-num">PID</span>
+          <span class="num th-num"><a href="#">CPU ▾</a></span>
+          <span class="num th-num">能耗</span>
+          <span class="num th-num"><a href="#">内存 ⇅</a></span>
+        </div>
+        <div class="tr proc">
+          <span class="dot ok"></span>
+          <span class="ell"><span class="icon">W</span> WindowServer</span>
+          <span class="num muted">412</span>
+          <span class="cpu-cell"><span class="mini"><i style="width: 18.4%;"></i></span><span class="num">18.4</span></span>
+          <span class="num">2.4h</span>
+          <span class="num">512.0MB</span>
+        </div>
+        <div class="tr proc">
+          <span class="dot hot"></span>
+          <span class="ell"><span class="icon">⚙︎</span> mds_stores 🔥</span>
+          <span class="num muted">388</span>
+          <span class="cpu-cell"><span class="mini"><i style="width: 100%;"></i></span><span class="num hot-v">104.2</span></span>
+          <span class="num">1.1h</span>
+          <span class="num">286.4MB</span>
+        </div>
+        <div class="tr proc">
+          <span class="dot ok"></span>
+          <span class="ell"><span class="icon">O</span> OrbStack Helper</span>
+          <span class="num muted">4512</span>
+          <span class="cpu-cell"><span class="mini"><i style="width: 34.2%;"></i></span><span class="num">34.2</span></span>
+          <span class="num">6.2h</span>
+          <span class="num">4.39GB</span>
+        </div>
+        <div class="tr proc">
+          <span class="dot ok"></span>
+          <span class="ell"><span class="icon">G</span> Google Chrome Helper</span>
+          <span class="num muted">9821</span>
+          <span class="cpu-cell"><span class="mini"><i style="width: 12.7%;"></i></span><span class="num">12.7</span></span>
+          <span class="num">3.0h</span>
+          <span class="num">1.82GB</span>
+        </div>
+        <div class="tr proc">
+          <span class="dot ok"></span>
+          <span class="ell"><span class="icon">T</span> Tidy</span>
+          <span class="num muted">7310</span>
+          <span class="cpu-cell"><span class="mini"><i style="width: 6.1%;"></i></span><span class="num">6.1</span></span>
+          <span class="num">12m</span>
+          <span class="num">192.0MB</span>
+        </div>
+        <div class="tr proc">
+          <span class="dot ok"></span>
+          <span class="ell"><span class="icon">S</span> Slack Helper</span>
+          <span class="num muted">5120</span>
+          <span class="cpu-cell"><span class="mini"><i style="width: 4.8%;"></i></span><span class="num">4.8</span></span>
+          <span class="num">48m</span>
+          <span class="num">684.2MB</span>
+        </div>
+        <div class="tr proc">
+          <span class="dot ok"></span>
+          <span class="ell"><span class="icon">C</span> Code Helper (Renderer)</span>
+          <span class="num muted">6044</span>
+          <span class="cpu-cell"><span class="mini"><i style="width: 3.9%;"></i></span><span class="num">3.9</span></span>
+          <span class="num">1.6h</span>
+          <span class="num">912.5MB</span>
+        </div>
+        <div class="tr proc">
+          <span class="dot ok"></span>
+          <span class="ell"><span class="icon">⚙︎</span> kernel_task</span>
+          <span class="num muted">0</span>
+          <span class="cpu-cell"><span class="mini"><i style="width: 3.2%;"></i></span><span class="num">3.2</span></span>
+          <span class="num">—</span>
+          <span class="num">3.12GB</span>
+        </div>
+        <div class="tr proc">
+          <span class="dot ok"></span>
+          <span class="ell"><span class="icon">F</span> Finder</span>
+          <span class="num muted">611</span>
+          <span class="cpu-cell"><span class="mini"><i style="width: 1.1%;"></i></span><span class="num">1.1</span></span>
+          <span class="num">4m</span>
+          <span class="num">148.3MB</span>
+        </div>
+        <div class="tr proc">
+          <span class="dot idle"></span>
+          <span class="ell"><span class="icon">S</span> Spotify Helper</span>
+          <span class="num muted">8433</span>
+          <span class="cpu-cell"><span class="mini"><i style="width: 0.6%;"></i></span><span class="num">0.6</span></span>
+          <span class="num">2m</span>
+          <span class="num">221.0MB</span>
+        </div>
+        <div class="tr proc">
+          <span class="dot idle"></span>
+          <span class="ell"><span class="icon">⚙︎</span> launchd</span>
+          <span class="num muted">1</span>
+          <span class="cpu-cell"><span class="mini"><i style="width: 0.2%;"></i></span><span class="num">0.2</span></span>
+          <span class="num">—</span>
+          <span class="num">24.6MB</span>
+        </div>
+        <div class="tr proc">
+          <span class="dot idle"></span>
+          <span class="ell"><span class="icon">⚙︎</span> coreaudiod</span>
+          <span class="num muted">402</span>
+          <span class="cpu-cell"><span class="mini"><i style="width: 0.1%;"></i></span><span class="num">0.1</span></span>
+          <span class="num">1m</span>
+          <span class="num">18.9MB</span>
+        </div>
+      </div>
+      <p class="note" style="padding-top: 10px;">… 其余 48 项</p>
+    </section>
+  </div>
+
+  <p class="colophon">macOS 15.1 (24B83) · Mikes-MacBook-Pro</p>
+</main>
+</body>
+</html>

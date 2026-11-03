@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidy · 清理 · 完成 · 方案 B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b.css">
+</head>
+<body>
+<header class="mast">
+  <span class="mast-word">TIDY</span>
+  <nav class="mast-tabs">
+    <a class="mast-tab on" href="clean-home.html"><span class="pg">A1</span>清理</a>
+    <a class="mast-tab" href="apps.html"><span class="pg">B1</span>软件</a>
+    <a class="mast-tab" href="optimize.html"><span class="pg">C1</span>优化</a>
+    <a class="mast-tab" href="analyze.html"><span class="pg">D1</span>分析</a>
+    <a class="mast-tab" href="status.html"><span class="pg">E1</span>状态</a>
+  </nav>
+  <span class="mast-meta"><span class="long">周二 · 11月3日 · </span>20:58</span>
+</header>
+<div class="mast-rules"></div>
+
+<main class="page">
+  <div class="folio">
+    <span class="issue">第 47 期 · 完成</span>
+    <span>逐项校验后删除 · 用时 1 分 12 秒</span>
+  </div>
+
+  <section class="databox">
+    <div class="cell">
+      <div class="cell-k">已释放</div>
+      <div class="fig">18.7<small>GB</small></div>
+    </div>
+    <div class="cell lede">
+      <div class="cell-k">跳过 · 2　失败 · 0</div>
+      <p class="prose">本期清理已经结束。2 项没有处理，原因列在下方；它们不会影响已释放的空间。</p>
+    </div>
+    <div class="cell cell-actions">
+      <a class="btn lg" href="clean-home.html">返回 →</a>
+    </div>
+  </section>
+
+  <div class="grid split">
+    <section class="mod">
+      <div class="kick"><span class="code">A2</span><span class="t">未处理 2 项</span><span class="aside">24 MB</span></div>
+      <div class="tbl">
+        <div class="tr th skip">
+          <span>路径</span><span class="num th-num">大小</span><span>原因</span>
+        </div>
+        <div class="tr skip">
+          <span class="ell mono path-cell">~/Library/Caches/com.spotify.client/Data/index.db</span>
+          <span class="num">18 MB</span>
+          <span class="reason">文件正在被使用</span>
+        </div>
+        <div class="tr skip">
+          <span class="ell mono path-cell">/Library/Caches/com.apple.iconservices.store</span>
+          <span class="num">6 MB</span>
+          <span class="reason">没有删除权限（文件属于其他用户或被系统保护）</span>
+        </div>
+      </div>
+
+      <div class="kick" style="margin-top: 30px;"><span class="code">A3</span><span class="t">本期账目</span><span class="aside">已处理 140 项</span></div>
+      <ul class="kv">
+        <li><span class="l">开发工具</span><span class="dots"></span><span class="v">6.42GB</span></li>
+        <li><span class="l">App 缓存</span><span class="dots"></span><span class="v">2.84GB</span></li>
+        <li><span class="l">浏览器</span><span class="dots"></span><span class="v">2.30GB</span></li>
+        <li><span class="l">通讯工具</span><span class="dots"></span><span class="v">1.38GB</span></li>
+        <li><span class="l">项目依赖与构建产物</span><span class="dots"></span><span class="v">1.20GB</span></li>
+        <li><span class="l">包管理器缓存</span><span class="dots"></span><span class="v">1.12GB</span></li>
+        <li><span class="l">日志</span><span class="dots"></span><span class="v">1.10GB</span></li>
+        <li><span class="l">其余 4 类</span><span class="dots"></span><span class="v">2.35GB</span></li>
+        <li class="total"><span class="l">合计</span><span class="dots"></span><span class="v">18.71GB</span></li>
+      </ul>
+    </section>
+
+    <div class="side">
+      <section class="mod">
+        <div class="kick"><span class="code">A4</span><span class="t">本期统计</span></div>
+        <ul class="kv">
+          <li><span class="l">已处理</span><span class="dots"></span><span class="v">140 / 142</span></li>
+          <li><span class="l">跳过</span><span class="dots"></span><span class="v">2</span></li>
+          <li><span class="l">失败</span><span class="dots"></span><span class="v">0</span></li>
+          <li><span class="l">已用时间</span><span class="dots"></span><span class="v">1 分 12 秒</span></li>
+        </ul>
+      </section>
+      <section class="mod">
+        <div class="kick"><span class="code">A5</span><span class="t">累计已省</span></div>
+        <div class="fig sm">331.21<small>GB</small></div>
+        <div class="note" style="margin-top: 6px;">共 47 期</div>
+      </section>
+    </div>
+  </div>
+</main>
+</body>
+</html>

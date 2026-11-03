@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="design_doc_mode" content="canvas">
+<title>Tidy 自适应改版 · 方案对比</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { font-family: -apple-system, "PingFang SC", system-ui, sans-serif; }
+  /* Each artboard is a real app window: the page inside the iframe sees the
+     iframe width as its viewport, so the same @media rules the app would use
+     decide the layout here. */
+  .tr-frame { display: block; border: 0; background: #faf8f3; }
+  .tr-tweaks-toggle {
+    position: fixed; right: 16px; bottom: 16px; z-index: 50;
+    font: 600 12px -apple-system, "PingFang SC", sans-serif;
+    padding: 8px 12px; border-radius: 6px; border: 1px solid #c9c3b4;
+    background: #faf8f3; color: #26241f; cursor: pointer;
+  }
+  .tr-tweaks {
+    position: fixed; right: 16px; bottom: 56px; z-index: 50; width: 260px;
+    padding: 14px 16px; border-radius: 8px; border: 1px solid #c9c3b4;
+    background: #faf8f3; box-shadow: 0 12px 32px rgba(38, 36, 31, .16);
+    display: grid; gap: 10px; font-size: 12px; color: #26241f;
+  }
+  .tr-tweaks label { display: grid; gap: 6px; }
+  .tr-tweaks output { font-family: ui-monospace, monospace; color: #a4432c; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel">
+// 画布入口：每个页面一节，每节并排 A/B 两个方案 × 默认宽/最小宽两种窗口。
+const SCREENS = [
+  { file: "clean-home.html", title: "清理 · 首页", note: "截图里错乱的页面：头条断成 4 行、按钮文字换行、期号大字压字" },
+  { file: "clean-scan.html", title: "清理 · 扫描中" },
+  { file: "clean-ledger.html", title: "清理 · 账目预览", note: "截图里叠字的页面：中栏被挤到约 200px" },
+  { file: "clean-done.html", title: "清理 · 完成" },
+  { file: "apps.html", title: "软件" },
+  { file: "optimize.html", title: "优化" },
+  { file: "analyze.html", title: "分析" },
+  { file: "status.html", title: "状态" },
+];
+
+const WIDE = 1320;
+const HEIGHT = 720;
+
+/** One app window rendered at a fixed size; the page inside reflows to it. */
+function WindowFrame({ src, width }) {
+  return <iframe className="tr-frame" src={src} width={width} height={HEIGHT} title={src}></iframe>;
+}
+
+/** Floating panel: change the narrow window width live (800 is the app minimum). */
+function Tweaks({ narrow, setNarrow }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <>
+      <button className="tr-tweaks-toggle" onClick={() => setOpen(!open)}>Tweaks</button>
+      {open && (
+        <div className="tr-tweaks">
+          <label>
+            <span>窄窗口宽度 <output>{narrow}px</output></span>
+            <input type="range" min="800" max="1320" step="20" value={narrow}
+              onChange={(e) => setNarrow(Number(e.target.value))} />
+          </label>
+        </div>
+      )}
+    </>
+  );
+}
+
+function App() {
+  const [narrow, setNarrow] = React.useState(800);
+  return (
+    <>
+      <DesignCanvas>
+        {SCREENS.map((s) => (
+          <DCSection key={s.file} id={s.file} title={s.title} subtitle={s.note}>
+            <DCArtboard id={`a-wide-${s.file}`} label={`A 宽幅报纸 · ${WIDE}`} width={WIDE} height={HEIGHT}>
+              <WindowFrame src={`a/${s.file}`} width={WIDE} />
+            </DCArtboard>
+            <DCArtboard id={`a-narrow-${s.file}`} label={`A 宽幅报纸 · ${narrow}`} width={narrow} height={HEIGHT}>
+              <WindowFrame src={`a/${s.file}`} width={narrow} />
+            </DCArtboard>
+            <DCArtboard id={`b-wide-${s.file}`} label={`B 小报栏格 · ${WIDE}`} width={WIDE} height={HEIGHT}>
+              <WindowFrame src={`b/${s.file}`} width={WIDE} />
+            </DCArtboard>
+            <DCArtboard id={`b-narrow-${s.file}`} label={`B 小报栏格 · ${narrow}`} width={narrow} height={HEIGHT}>
+              <WindowFrame src={`b/${s.file}`} width={narrow} />
+            </DCArtboard>
+          </DCSection>
+        ))}
+      </DesignCanvas>
+      <Tweaks narrow={narrow} setNarrow={setNarrow} />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

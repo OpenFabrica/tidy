@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidy · 优化 · 任务列表 · 方案 A</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="a.css" rel="stylesheet">
+</head>
+<body>
+<header class="mast">
+  <div class="mast-row">
+    <span class="mast-logo">TIDY</span>
+    <nav class="mast-tabs">
+      <a href="clean-home.html">清理</a>
+      <a href="apps.html">软件</a>
+      <a class="is-active" href="optimize.html">优化</a>
+      <a href="analyze.html">分析</a>
+      <a href="status.html">状态</a>
+    </nav>
+    <span class="mast-meta"><span class="long">周二 · 11月3日 · </span>20:56</span>
+  </div>
+  <div class="mast-rules"></div>
+</header>
+
+<main class="page">
+  <div class="wrap opt-spread">
+    <section class="opt-main">
+      <div class="col-head">
+        <span class="col-title">例行维护 · 22 项</span>
+        <a class="col-tools act act--sm" href="optimize.html">执行已选 18 项 →</a>
+      </div>
+
+      <div class="tasks">
+        <div class="task">
+          <span class="task-no">01</span>
+          <div><div class="task-title">重建 QuickLook 缓存</div><p class="task-desc">修复访达里损坏的文件预览。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">02</span>
+          <div><div class="task-title">重建 QuickLook 缩略图</div><p class="task-desc">文件缩略图过期时，重新载入 QuickLook 生成器。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task is-done">
+          <span class="task-no">03</span>
+          <div><div class="task-title">刷新 DNS 缓存</div><p class="task-desc">网络切换后，刷新过期的 DNS 解析结果。</p><span class="task-act">✓ 今天已运行</span></div>
+        </div>
+        <div class="task is-off">
+          <span class="task-no">04</span>
+          <div><div class="task-title">重建 Spotlight 索引</div><p class="task-desc">仅在索引已开启且搜索变慢时重建索引。</p><span class="task-act">加入本次</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">05</span>
+          <div><div class="task-title">释放非活跃内存</div><p class="task-desc">仅在内存压力偏高时释放非活跃页面。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">06</span>
+          <div><div class="task-title">清理过期的窗口状态</div><p class="task-desc">把 30 天前保存的窗口状态移到废纸篓。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">07</span>
+          <div><div class="task-title">清除隔离记录</div><p class="task-desc">清除 macOS 下载历史，不改变文件的隔离标记。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">08</span>
+          <div><div class="task-title">压缩过大的使用记录数据库</div><p class="task-desc">本机使用记录数据库超过 100 MB 后才压缩。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task is-off">
+          <span class="task-no">09</span>
+          <div><div class="task-title">不在网络盘与 U 盘写入 .DS_Store</div><p class="task-desc">让访达不再向共享盘和移动磁盘写入 .DS_Store 文件。</p><span class="task-act">加入本次</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">10</span>
+          <div><div class="task-title">移除旧版 App Nap 与磁盘映像覆盖设置</div><p class="task-desc">只移除旧调优工具留下的隐藏覆盖项。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">11</span>
+          <div><div class="task-title">重建字体缓存</div><p class="task-desc">关闭浏览器后，重建用户字体数据库。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">12</span>
+          <div><div class="task-title">重建 Launch Services 数据库</div><p class="task-desc">重建“打开方式”登记，移除失效的应用条目。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task is-off">
+          <span class="task-no">13</span>
+          <div><div class="task-title">修复磁盘权限</div><p class="task-desc">仅在归属或可写性错误时，重置当前用户主目录的权限。</p><span class="task-act">加入本次</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">14</span>
+          <div><div class="task-title">运行定期维护脚本</div><p class="task-desc">仅在每日日志过期时，运行每日、每周与每月脚本。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">15</span>
+          <div><div class="task-title">压缩邮件与信息数据库</div><p class="task-desc">碎片超过 5% 时，整理邮件、信息与 Safari 的小型数据库。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">16</span>
+          <div><div class="task-title">清理失效的共享文件列表</div><p class="task-desc">把无效的 .sfl2 / .sfl3 列表移到废纸篓，保留最近文稿记录。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">17</span>
+          <div><div class="task-title">移除失效的 Launch Agent</div><p class="task-desc">可执行文件已不存在时，才把用户 LaunchAgent plist 移到废纸篓。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">18</span>
+          <div><div class="task-title">恢复损坏的偏好设置</div><p class="task-desc">把无效的第三方偏好 plist 移到废纸篓，由 macOS 重新生成。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">19</span>
+          <div><div class="task-title">精简通知中心数据库</div><p class="task-desc">数据库超过 50 MB 后，才删除 30 天前的已送达记录。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">20</span>
+          <div><div class="task-title">移除孤立的 Spotlight 规则</div><p class="task-desc">只移除已确认不存在的第三方 bundle ID。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">21</span>
+          <div><div class="task-title">检查登录项</div><p class="task-desc">只读检查，报告可执行文件已不存在的启动项。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+        <div class="task">
+          <span class="task-no">22</span>
+          <div><div class="task-title">刷新网络栈</div><p class="task-desc">网络检查失败且没有 VPN 或代理时，才刷新路由与 ARP 缓存。</p><span class="task-act">✓ 已选 · 取消</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 侧栏：维护日志；≤980px 移到下方 -->
+    <aside class="side opt-side">
+      <span class="sec-label">维护日志</span>
+      <div class="log">
+        <div class="lrow"><span class="date">11/3</span><span class="label">刷新 DNS 缓存</span><span class="leader leader--soft"></span><span class="val">✓</span></div>
+        <div class="lrow"><span class="date">11/2</span><span class="label">重建 QuickLook 缓存</span><span class="leader leader--soft"></span><span class="val">✓</span></div>
+        <div class="lrow"><span class="date">11/2</span><span class="label">重建字体缓存</span><span class="leader leader--soft"></span><span class="val">✓</span></div>
+        <div class="lrow"><span class="date">10/27</span><span class="label">修复磁盘权限</span><span class="leader leader--soft"></span><span class="val">已跳过</span></div>
+        <div class="lrow"><span class="date">10/27</span><span class="label">运行定期维护脚本</span><span class="leader leader--soft"></span><span class="val">✓</span></div>
+        <div class="lrow"><span class="date">10/20</span><span class="label">压缩邮件与信息数据库</span><span class="leader leader--soft"></span><span class="val">✓</span></div>
+      </div>
+      <div class="side-rules opt-rules">
+        <p class="note">所有任务使用系统公开接口，有明确边界，不做“深度加速”类危险操作。</p>
+        <a class="quiet" href="optimize.html">取消</a>
+      </div>
+    </aside>
+  </div>
+</main>
+</body>
+</html>

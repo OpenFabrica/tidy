@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidy · 分析 · 方案 B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b.css">
+</head>
+<body>
+<header class="mast">
+  <span class="mast-word">TIDY</span>
+  <nav class="mast-tabs">
+    <a class="mast-tab" href="clean-home.html"><span class="pg">A1</span>清理</a>
+    <a class="mast-tab" href="apps.html"><span class="pg">B1</span>软件</a>
+    <a class="mast-tab" href="optimize.html"><span class="pg">C1</span>优化</a>
+    <a class="mast-tab on" href="analyze.html"><span class="pg">D1</span>分析</a>
+    <a class="mast-tab" href="status.html"><span class="pg">E1</span>状态</a>
+  </nav>
+  <span class="mast-meta"><span class="long">缓存于 </span>09:12 · <a href="#">图形视图</a> · <a href="#">重新扫描</a></span>
+</header>
+<div class="mast-rules"></div>
+
+<main class="page">
+  <div class="folio">
+    <span class="issue">空间调查 · 磁盘占用</span>
+    <span>逐层统计 · 按大小排出账目</span>
+  </div>
+
+  <section class="band">
+    <div class="ticker four">
+      <div class="tick">
+        <div class="tick-k">整盘容量</div>
+        <div class="tick-v">994.66<small>GB</small></div>
+      </div>
+      <div class="tick">
+        <div class="tick-k">已用</div>
+        <div class="tick-v">712.04<small>GB</small></div>
+      </div>
+      <div class="tick">
+        <div class="tick-k">可用</div>
+        <div class="tick-v">282.62<small>GB</small></div>
+      </div>
+      <div class="tick">
+        <div class="tick-k">本层 · ~/mike</div>
+        <div class="tick-v">412.30<small>GB</small></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid split wide-side">
+    <section class="mod">
+      <div class="kick"><span class="code">D1</span><span class="t">本层账目</span><span class="aside">按大小排序</span></div>
+      <div class="crumbs">
+        <h1 class="crumb-path"><a href="#">整个磁盘</a><span class="sep">›</span><a href="#">Users</a><span class="sep">›</span><span class="here">mike</span></h1>
+        <span class="count">38 项 · 412.30GB</span>
+      </div>
+
+      <div style="margin-top: 10px; border-top: 1px solid var(--rule-strong);">
+        <div class="rank lead">
+          <div class="rank-line"><span class="name"><a href="#">Library</a></span><span class="num">186.20GB · 45%</span></div>
+          <div class="bar"><i style="width: 45%;"></i></div>
+        </div>
+        <div class="rank">
+          <div class="rank-line"><span class="name"><a href="#">Projects</a></span><span class="num">98.40GB · 24%</span></div>
+          <div class="bar"><i style="width: 24%; background: var(--wash-4);"></i></div>
+        </div>
+        <div class="rank">
+          <div class="rank-line"><span class="name"><a href="#">Movies</a></span><span class="num">52.10GB · 13%</span></div>
+          <div class="bar"><i style="width: 13%; background: var(--wash-4);"></i></div>
+        </div>
+        <div class="rank">
+          <div class="rank-line"><span class="name"><a href="#">Downloads</a></span><span class="num">28.60GB · 7%</span></div>
+          <div class="bar"><i style="width: 7%; background: var(--wash-3);"></i></div>
+        </div>
+        <div class="rank">
+          <div class="rank-line"><span class="name"><a href="#">Documents</a></span><span class="num">14.80GB · 4%</span></div>
+          <div class="bar"><i style="width: 4%; background: var(--wash-3);"></i></div>
+        </div>
+        <div class="rank">
+          <div class="rank-line"><span class="name"><a href="#">.docker</a></span><span class="num">10.10GB · 2%</span></div>
+          <div class="bar"><i style="width: 2%; background: var(--wash-2);"></i></div>
+        </div>
+        <div class="rank">
+          <div class="rank-line"><span class="name muted">其余 32 项</span><span class="num">22.10GB · 5%</span></div>
+          <div class="bar"><i style="width: 5%; background: var(--wash-2);"></i></div>
+        </div>
+      </div>
+      <p class="note" style="margin-top: 12px;">点击目录名深入 · 面包屑返回上级</p>
+    </section>
+
+    <div class="side">
+      <aside class="mod">
+        <div class="kick"><span class="code">D2</span><span class="t">Library 内</span><span class="aside">186.20GB</span></div>
+        <ul class="kv">
+          <li><span class="l">Containers</span><span class="dots"></span><span class="v">88.1GB</span></li>
+          <li><span class="l">Application Support</span><span class="dots"></span><span class="v">42.6GB</span></li>
+          <li><span class="l">Caches</span><span class="dots"></span><span class="v">31.2GB</span></li>
+          <li><span class="l">Developer</span><span class="dots"></span><span class="v">14.9GB</span></li>
+          <li><span class="l muted">其余 58 项</span><span class="dots"></span><span class="v">9.4GB</span></li>
+        </ul>
+        <div class="act-row" style="margin-top: 14px;">
+          <a class="btn sm" href="#">进入 Library →</a>
+          <span class="link off">移到废纸篓</span>
+        </div>
+      </aside>
+      <aside class="mod">
+        <div class="kick"><span class="code">D3</span><span class="t">勾选后可移到废纸篓</span></div>
+        <div class="tbl">
+          <div class="tr pick"><span class="cb"></span><span class="ell">Library</span><span class="num">186.20GB</span></div>
+          <div class="tr pick"><span class="cb"></span><span class="ell">Projects</span><span class="num">98.40GB</span></div>
+          <div class="tr pick"><span class="cb"></span><span class="ell">Movies</span><span class="num">52.10GB</span></div>
+          <div class="tr pick"><span class="cb"></span><span class="ell">Downloads</span><span class="num">28.60GB</span></div>
+          <div class="tr pick"><span class="cb"></span><span class="ell">Documents</span><span class="num">14.80GB</span></div>
+          <div class="tr pick"><span class="cb"></span><span class="ell">.docker</span><span class="num">10.10GB</span></div>
+          <div class="tr pick"><span class="cb"></span><span class="ell">Pictures</span><span class="num">6.20GB</span></div>
+          <div class="tr pick"><span class="cb"></span><span class="ell">.npm</span><span class="num">4.80GB</span></div>
+          <div class="tr pick"><span class="cb"></span><span class="ell">.cache</span><span class="num">3.90GB</span></div>
+          <div class="tr pick"><span class="cb"></span><span class="ell">Desktop</span><span class="num">2.10GB</span></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="disk">
+    <span class="nowrap" style="letter-spacing: 2px; color: var(--ink);">磁盘</span>
+    <span class="strip"><span class="used" style="width: 72%;"></span><span class="free"></span></span>
+    <span class="nowrap">已用 712.04GB · 可用 282.62GB</span>
+  </div>
+</main>
+</body>
+</html>

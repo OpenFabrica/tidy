@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidy · 优化 · 方案 B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="b.css">
+</head>
+<body>
+<header class="mast">
+  <span class="mast-word">TIDY</span>
+  <nav class="mast-tabs">
+    <a class="mast-tab" href="clean-home.html"><span class="pg">A1</span>清理</a>
+    <a class="mast-tab" href="apps.html"><span class="pg">B1</span>软件</a>
+    <a class="mast-tab on" href="optimize.html"><span class="pg">C1</span>优化</a>
+    <a class="mast-tab" href="analyze.html"><span class="pg">D1</span>分析</a>
+    <a class="mast-tab" href="status.html"><span class="pg">E1</span>状态</a>
+  </nav>
+  <span class="mast-meta"><span class="long">上次维护 · </span>昨天 22:14</span>
+</header>
+<div class="mast-rules"></div>
+
+<main class="page">
+  <div class="folio">
+    <span class="issue">例行专栏 · 系统维护</span>
+    <span>22 项例行 · 全部走系统公开接口</span>
+  </div>
+
+  <section class="band">
+    <div class="ticker four">
+      <div class="tick">
+        <div class="tick-k">上次维护</div>
+        <div class="tick-v">昨天<small>22:14</small></div>
+      </div>
+      <div class="tick">
+        <div class="tick-k">已完成任务</div>
+        <div class="tick-v">37<small>次</small></div>
+      </div>
+      <div class="tick">
+        <div class="tick-k">本次已选</div>
+        <div class="tick-v">18<small>/ 22 项</small></div>
+      </div>
+      <div class="tick">
+        <div class="tick-k">预计用时</div>
+        <div class="tick-v">约 2<small>分钟</small></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="grid split">
+    <section class="mod">
+      <div class="kick"><span class="code">C1</span><span class="t">任务清单</span><span class="aside">已选 18 项</span></div>
+      <div class="headrow">
+        <h1 class="title">例行维护 · 22 项</h1>
+        <a class="btn" href="#">执行已选 18 项 →</a>
+      </div>
+      <div class="tasks">
+        <div class="task">
+          <span class="no">01</span>
+          <div>
+            <h3>重建 QuickLook 缓存</h3>
+            <p>修复访达里失效的文件预览。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">02</span>
+          <div>
+            <h3>重建 QuickLook 缩略图</h3>
+            <p>文件缩略图过期时，重新载入 QuickLook 生成器。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task off">
+          <span class="no">03</span>
+          <div>
+            <h3>刷新 DNS 缓存</h3>
+            <p>网络切换后，刷新过期的 DNS 解析结果。</p>
+            <span class="state ran">✓ 今天已运行</span>
+          </div>
+        </div>
+        <div class="task off">
+          <span class="no">04</span>
+          <div>
+            <h3>重建 Spotlight 索引</h3>
+            <p>仅在索引已开启且搜索变慢时重建搜索索引。</p>
+            <a class="state link plain" href="#">加入本次</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">05</span>
+          <div>
+            <h3>释放闲置内存</h3>
+            <p>仅在内存压力偏高时释放闲置内存页。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">06</span>
+          <div>
+            <h3>清理过期的窗口状态</h3>
+            <p>把 30 天以前的已存窗口状态移到废纸篓。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">07</span>
+          <div>
+            <h3>清除隔离记录</h3>
+            <p>清除 macOS 下载历史，不改动文件的隔离标记。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">08</span>
+          <div>
+            <h3>压缩过大的使用记录数据库</h3>
+            <p>仅在超过 100 MB 后压缩本机使用记录数据库。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">09</span>
+          <div>
+            <h3>禁止在网络与 USB 磁盘写入 .DS_Store</h3>
+            <p>让访达不再往共享和移动磁盘写 .DS_Store 文件。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">10</span>
+          <div>
+            <h3>移除遗留的 App Nap 与磁盘映像设置</h3>
+            <p>只移除旧调优工具留下的隐藏设置。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">11</span>
+          <div>
+            <h3>重建字体缓存</h3>
+            <p>关闭浏览器后重建用户字体数据库。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">12</span>
+          <div>
+            <h3>重建 Launch Services 数据库</h3>
+            <p>重建“打开方式”登记，移除失效的应用条目。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task off">
+          <span class="no">13</span>
+          <div>
+            <h3>修复磁盘权限</h3>
+            <p>仅在归属或可写性有误时重置当前用户主目录权限。</p>
+            <a class="state link plain" href="#">加入本次</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">14</span>
+          <div>
+            <h3>运行周期维护脚本</h3>
+            <p>仅在每日日志过期时运行日、周、月维护脚本。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">15</span>
+          <div>
+            <h3>压缩邮件与信息数据库</h3>
+            <p>碎片超过 5% 时，压缩邮件、信息与 Safari 的小型数据库。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">16</span>
+          <div>
+            <h3>清理失效的共享文件列表</h3>
+            <p>把无效的 .sfl2/.sfl3 访达列表移到废纸篓，保留最近文稿记录。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">17</span>
+          <div>
+            <h3>移除失效的 Launch Agents</h3>
+            <p>仅在可执行文件已不存在时，把用户 LaunchAgent plist 移到废纸篓。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">18</span>
+          <div>
+            <h3>恢复损坏的偏好设置</h3>
+            <p>把无效的第三方偏好 plist 移到废纸篓，由 macOS 重新生成。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">19</span>
+          <div>
+            <h3>精简通知中心数据库</h3>
+            <p>数据库超过 50 MB 后，删除 30 天以前的已送达记录。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">20</span>
+          <div>
+            <h3>移除孤立的 Spotlight 规则</h3>
+            <p>只移除确认已不存在的第三方 bundle ID 规则。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task">
+          <span class="no">21</span>
+          <div>
+            <h3>检查登录项</h3>
+            <p>只读检查，报告可执行文件已不存在的启动项。</p>
+            <a class="state link plain" href="#">✓ 已选 · 取消</a>
+          </div>
+        </div>
+        <div class="task off">
+          <span class="no">22</span>
+          <div>
+            <h3>刷新网络栈</h3>
+            <p>仅在网络检查失败且未开启 VPN 或代理时，刷新路由与 ARP 缓存。</p>
+            <a class="state link plain" href="#">加入本次</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="side">
+      <aside class="mod">
+        <div class="kick"><span class="code">C2</span><span class="t">维护日志</span></div>
+        <ul class="kv">
+          <li><span class="l"><span class="mono muted">11/2</span>  刷新 DNS 缓存</span><span class="dots"></span><span class="v">✓</span></li>
+          <li><span class="l"><span class="mono muted">11/2</span>  重建 QuickLook 缓存</span><span class="dots"></span><span class="v">✓</span></li>
+          <li><span class="l"><span class="mono muted">10/26</span>  运行周期维护脚本</span><span class="dots"></span><span class="v">✓</span></li>
+          <li><span class="l"><span class="mono muted">10/26</span>  重建字体缓存</span><span class="dots"></span><span class="v">已跳过</span></li>
+          <li><span class="l"><span class="mono muted">10/19</span>  重建 Spotlight 索引</span><span class="dots"></span><span class="v">需管理员</span></li>
+          <li><span class="l"><span class="mono muted">10/19</span>  精简通知中心数据库</span><span class="dots"></span><span class="v">✓</span></li>
+        </ul>
+      </aside>
+      <aside class="mod">
+        <div class="kick"><span class="code">C3</span><span class="t">说明</span></div>
+        <p class="prose sm">所有任务使用系统公开接口，有明确边界，不做“深度加速”类危险操作。</p>
+        <div class="act-row" style="margin-top: 12px;"><a class="link" href="#">取消</a></div>
+      </aside>
+    </div>
+  </div>
+</main>
+</body>
+</html>

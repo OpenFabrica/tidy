@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidy · 清理 · 账目预览 · 方案 A</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="a.css" rel="stylesheet">
+</head>
+<body>
+<header class="mast">
+  <div class="mast-row">
+    <span class="mast-logo">TIDY</span>
+    <nav class="mast-tabs">
+      <a class="is-active" href="clean-home.html">清理</a>
+      <a href="apps.html">软件</a>
+      <a href="optimize.html">优化</a>
+      <a href="analyze.html">分析</a>
+      <a href="status.html">状态</a>
+    </nav>
+    <span class="mast-meta"><span class="long">周二 · 11月3日 · </span>20:56</span>
+  </div>
+  <div class="mast-rules"></div>
+</header>
+
+<main class="page">
+  <div class="wrap ledger-spread">
+    <!-- 左栏：本期总额；≤980px 变成顶部横幅 -->
+    <section class="total-col">
+      <div class="total-figure-block">
+        <span class="kicker kicker--sm">本期可回收</span>
+        <div class="figure">23.4<span class="unit">GB</span></div>
+      </div>
+      <div class="total-body">
+        <p class="lede">以下各类均为可安全移除的文件。清理不触碰文稿与应用数据。</p>
+        <p class="blocked">关闭 Chrome、Slack 后可再清理 <span class="mono">1.20GB</span> · 34 项</p>
+        <div class="badge-list"><span class="badge badge--warn">proj/app: uncommitted changes</span></div>
+      </div>
+      <div class="total-actions">
+        <a class="act" href="clean-done.html">清理 →</a>
+        <div class="total-quiet">
+          <a class="quiet" href="clean-ledger.html">先预览全部明细</a>
+          <a class="quiet" href="clean-home.html">取消</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 中栏：清理账目 -->
+    <section class="ledger-main">
+      <div class="col-head">
+        <span class="col-title">清理账目</span>
+        <span class="col-tools mono-link">全选 / 清空</span>
+      </div>
+
+      <div class="sec">
+        <span class="cb is-mixed"></span>
+        <div class="sec-body">
+          <div class="sec-name"><b>App 缓存</b><span class="sec-count">已选 12/14</span></div>
+          <div class="sec-desc">应用临时文件，下次启动会重新生成</div>
+        </div>
+        <span class="sec-size">2.84GB <span class="of">/ 3.21GB</span></span>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="sec">
+        <span class="cb is-on"></span>
+        <div class="sec-body">
+          <div class="sec-name"><b>日志</b><span class="sec-count">已选 96/96</span></div>
+          <div class="sec-desc">诊断日志，应用会按需重建</div>
+        </div>
+        <span class="sec-size">920MB</span>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="sec">
+        <span class="cb is-on"></span>
+        <div class="sec-body">
+          <div class="sec-name"><b>开发工具</b><span class="sec-count">已选 6/6</span></div>
+          <div class="sec-desc">Xcode / npm 等开发缓存，首次构建会稍慢</div>
+        </div>
+        <span class="sec-size">6.48GB</span>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="sec">
+        <span class="cb is-mixed"></span>
+        <div class="sec-body">
+          <div class="sec-name"><b>AI 工具</b><span class="sec-count">已选 2/4</span></div>
+          <div class="sec-desc">临时 AI 应用缓存，对话、项目和本地模型会保留</div>
+        </div>
+        <span class="sec-size">1.10GB <span class="of">/ 2.05GB</span></span>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="sec is-off">
+        <span class="cb"></span>
+        <div class="sec-body">
+          <div class="sec-name"><b>浏览器</b><span class="sec-count">已选 0/3</span></div>
+          <div class="sec-desc">浏览器缓存，登录状态和历史记录会保留</div>
+        </div>
+        <span class="sec-size">2.31GB</span>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="sec">
+        <span class="cb is-on"></span>
+        <div class="sec-body">
+          <div class="sec-name"><b>包管理器缓存</b><span class="sec-count">已选 18/18</span></div>
+          <div class="sec-desc">cargo / gradle / maven / go / pnpm / pip 等下载缓存，下次安装会重新拉取</div>
+        </div>
+        <span class="sec-size">2.36GB</span>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="sec">
+        <span class="cb is-mixed"></span>
+        <div class="sec-body">
+          <div class="sec-name"><b>项目依赖与构建产物</b><span class="sec-count">已选 3/4</span></div>
+          <div class="sec-desc">node_modules / target / .venv 等，可重新生成；删除后需重新安装依赖或构建</div>
+        </div>
+        <span class="sec-size">4.20GB <span class="of">/ 4.62GB</span></span>
+        <span class="chev">⌄</span>
+      </div>
+      <div class="items">
+        <div class="item">
+          <span class="cb is-on"></span>
+          <div class="item-body">
+            <span class="item-name">my-app/node_modules<span class="count">18,204 项</span></span>
+            <span class="path"><span class="path-head">~/Projects/my-app/</span><span class="path-tail">node_modules</span></span>
+          </div>
+          <span class="badge badge--ok">92 天未动</span>
+          <span class="item-size">1.86GB</span>
+          <span class="reveal">↗</span>
+        </div>
+        <div class="item">
+          <span class="cb is-on"></span>
+          <div class="item-body">
+            <span class="item-name">api-server/target<span class="count">6,410 项</span></span>
+            <span class="path"><span class="path-head">~/Projects/api-server/</span><span class="path-tail">target</span></span>
+          </div>
+          <span class="badge badge--ok">140 天未动</span>
+          <span class="item-size">1.52GB</span>
+          <span class="reveal">↗</span>
+        </div>
+        <div class="item">
+          <span class="cb is-on"></span>
+          <div class="item-body">
+            <span class="item-name">app/.venv<span class="count">9,876 项</span></span>
+            <span class="path"><span class="path-head">~/Projects/proj/app/</span><span class="path-tail">.venv</span></span>
+          </div>
+          <span class="badge badge--warn">9 天内改过</span>
+          <span class="item-size">820MB</span>
+          <span class="reveal">↗</span>
+        </div>
+        <div class="item">
+          <span class="cb"></span>
+          <div class="item-body">
+            <span class="item-name">blog/node_modules<span class="count">4,312 项</span></span>
+            <span class="path"><span class="path-head">~/Projects/blog/</span><span class="path-tail">node_modules</span></span>
+          </div>
+          <span class="badge badge--warn">3 天内改过</span>
+          <span class="item-size">420MB</span>
+          <span class="reveal">↗</span>
+        </div>
+      </div>
+
+      <div class="sec">
+        <span class="cb is-on"></span>
+        <div class="sec-body">
+          <div class="sec-name"><b>Docker</b><span class="sec-count">已选 5/5</span></div>
+          <div class="sec-desc">镜像与构建缓存；正在被容器使用的镜像 Docker 会拒绝删除</div>
+        </div>
+        <span class="sec-size">830MB</span>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="sec is-off">
+        <span class="cb"></span>
+        <div class="sec-body">
+          <div class="sec-name"><b>废纸篓</b><span class="sec-count">已选 0/1</span></div>
+          <div class="sec-desc">已在废纸篓里的内容；这里的删除是永久的，默认不勾选</div>
+        </div>
+        <span class="sec-size">620MB</span>
+        <span class="chev">›</span>
+      </div>
+
+      <div class="subtotal">
+        <span class="label">小计 · 已选 142 项</span>
+        <span class="leader"></span>
+        <span class="val">18.73GB</span>
+      </div>
+    </section>
+
+    <!-- 右栏：说明；≤1100px 并入左栏底部 -->
+    <aside class="side">
+      <div class="side-stat">
+        <span class="sec-label">上次清理</span>
+        <span class="figure figure--sm">14 天前</span>
+      </div>
+      <div class="side-stat">
+        <span class="sec-label">累计已省</span>
+        <span class="figure figure--sm">312.50GB</span>
+      </div>
+      <p class="note side-rules">清理规则：只移除可再生文件；受保护项目需要单独确认；执行前的每一项都可以取消勾选。</p>
+    </aside>
+  </div>
+</main>
+</body>
+</html>

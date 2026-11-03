@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tidy · 状态 · 方案 A</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="a.css" rel="stylesheet">
+</head>
+<body>
+<header class="mast">
+  <div class="mast-row">
+    <span class="mast-logo">TIDY</span>
+    <nav class="mast-tabs">
+      <a href="clean-home.html">清理</a>
+      <a href="apps.html">软件</a>
+      <a href="optimize.html">优化</a>
+      <a href="analyze.html">分析</a>
+      <a class="is-active" href="status.html">状态</a>
+    </nav>
+    <span class="mast-meta">M3 Pro · 36 GB · macOS 15.1</span>
+  </div>
+  <div class="mast-rules"></div>
+</header>
+
+<main class="page">
+  <div class="wrap">
+    <!-- 指标带：6 列；≤1100px 变 3×2 -->
+    <section class="metrics">
+      <div class="metric">
+        <div class="metric-fig">23<span class="unit">%</span></div>
+        <span class="metric-label">CPU 52°C · 12 核</span>
+        <div class="chart cores">
+          <i style="height: 72%;"></i><i style="height: 58%;"></i><i style="height: 40%;"></i><i style="height: 35%;"></i><i style="height: 22%;"></i><i style="height: 18%;"></i><i style="height: 14%;"></i><i style="height: 12%;"></i><i style="height: 10%;"></i><i style="height: 9%;"></i><i style="height: 8%;"></i><i style="height: 6%;"></i>
+        </div>
+      </div>
+      <div class="metric">
+        <div class="metric-fig">68<span class="unit">%</span></div>
+        <span class="metric-label">内存 · 压力 12%</span>
+        <div class="meter"><i style="width: 68%;"></i></div>
+      </div>
+      <div class="metric">
+        <div class="metric-fig">14<span class="unit">%</span></div>
+        <span class="metric-label">GPU 48°C · 18 GPU 核 · 低负载</span>
+        <div class="chart">
+          <svg viewBox="0 0 120 22" preserveAspectRatio="none" aria-hidden="true"><polyline points="0,17 12,16 24,18 36,14 48,15 60,11 72,16 84,13 96,17 108,15 120,16" fill="none" stroke="#26241f" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+        </div>
+      </div>
+      <div class="metric">
+        <div class="metric-fig">282<span class="unit">GB</span></div>
+        <span class="metric-label">磁盘 · 已用 72%</span>
+        <div class="meter"><i style="width: 72%;"></i></div>
+      </div>
+      <div class="metric">
+        <div class="metric-fig">1.2<span class="unit">MB/s</span></div>
+        <span class="metric-label">网络 · en0 · ↑48KB</span>
+        <div class="chart">
+          <svg viewBox="0 0 120 22" preserveAspectRatio="none" aria-hidden="true"><path d="M0,22 L0,18 L15,17 L30,12 L45,15 L60,6 L75,10 L90,14 L105,9 L120,12 L120,22 Z" fill="#e0d5c2"></path><polyline points="0,18 15,17 30,12 45,15 60,6 75,10 90,14 105,9 120,12" fill="none" stroke="#26241f" stroke-width="1.2" vector-effect="non-scaling-stroke"></polyline><polyline points="0,20 15,19 30,20 45,18 60,19 75,17 90,20 105,19 120,19" fill="none" stroke="#a4432c" stroke-width="1.5" vector-effect="non-scaling-stroke"></polyline></svg>
+        </div>
+      </div>
+      <div class="metric">
+        <div class="metric-fig">87<span class="unit">%</span></div>
+        <span class="metric-label">电池 ⚡ · 312 次循环</span>
+        <span class="metric-label">风扇 2400 RPM ×2</span>
+      </div>
+    </section>
+
+    <!-- 风扇控制（空闲态） -->
+    <section class="fan-panel">
+      <span class="sec-label">风扇控制</span>
+      <span class="fan-state">自动（macOS 调节）</span>
+      <span class="fan-btn">开启手动控制</span>
+      <p class="note">需要一次管理员密码。退出 Tidy 时风扇自动交还给 macOS。</p>
+    </section>
+
+    <div class="status-rule"></div>
+
+    <!-- 三栏：按 CPU / 按内存 / 健康度；≤980px 健康度变整行 -->
+    <section class="status-cols">
+      <div class="status-col">
+        <span class="sec-label">进程 · 按 CPU</span>
+        <div class="lrow is-hot"><span class="label">node</span><span class="leader"></span><span class="val">128.4</span></div>
+        <div class="lrow"><span class="label">WindowServer</span><span class="leader"></span><span class="val">18.4</span></div>
+        <div class="lrow"><span class="label">OrbStack Helper</span><span class="leader"></span><span class="val">12.7</span></div>
+        <div class="lrow"><span class="label">Google Chrome Helper (Renderer)</span><span class="leader"></span><span class="val">9.6</span></div>
+        <div class="lrow"><span class="label">Tidy</span><span class="leader"></span><span class="val">4.1</span></div>
+      </div>
+      <div class="status-col status-col--mem">
+        <span class="sec-label">进程 · 按内存</span>
+        <div class="lrow"><span class="label">OrbStack Helper</span><span class="leader"></span><span class="val">4.39GB</span></div>
+        <div class="lrow"><span class="label">Google Chrome Helper</span><span class="leader"></span><span class="val">1.82GB</span></div>
+        <div class="lrow"><span class="label">Xcode</span><span class="leader"></span><span class="val">1.24GB</span></div>
+        <div class="lrow"><span class="label">node</span><span class="leader"></span><span class="val">812MB</span></div>
+        <div class="lrow"><span class="label">WindowServer</span><span class="leader"></span><span class="val">512MB</span></div>
+      </div>
+      <div class="status-col status-col--health">
+        <span class="sec-label">健康度</span>
+        <div class="health-fig">92<small> / 良好</small></div>
+        <span class="health-note">各项指标正常</span>
+        <span class="uptime">已运行 4d 12h · 自 10/30</span>
+      </div>
+    </section>
+
+    <!-- 进程全表 -->
+    <section class="proc">
+      <h2 class="proc-title">进程全表 · 60 项</h2>
+      <table class="ptable">
+        <thead>
+          <tr>
+            <th class="c-name">名称 (60) ⇅</th>
+            <th class="c-pid num">PID</th>
+            <th class="c-cpu num">CPU ⌄</th>
+            <th class="c-energy num">能耗</th>
+            <th class="c-mem num">内存</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="is-hot">
+            <td><div class="pname"><span class="dot dot--hot"></span><span class="icon">⚙︎</span><span class="label">node 🔥</span></div></td>
+            <td class="num">7120</td>
+            <td class="num"><div class="cpu-cell"><span class="cpu-bar"><i style="width: 100%;"></i></span><span>128.4</span></div></td>
+            <td class="num">5.6h</td>
+            <td class="num">812.0MB</td>
+          </tr>
+          <tr>
+            <td><div class="pname"><span class="dot dot--ok"></span><span class="icon">⚙︎</span><span class="label">WindowServer</span></div></td>
+            <td class="num">412</td>
+            <td class="num"><div class="cpu-cell"><span class="cpu-bar"><i style="width: 18%;"></i></span><span>18.4</span></div></td>
+            <td class="num">3.1h</td>
+            <td class="num">512.0MB</td>
+          </tr>
+          <tr>
+            <td><div class="pname"><span class="dot dot--ok"></span><span class="icon">O</span><span class="label">OrbStack Helper</span></div></td>
+            <td class="num">4512</td>
+            <td class="num"><div class="cpu-cell"><span class="cpu-bar"><i style="width: 13%;"></i></span><span>12.7</span></div></td>
+            <td class="num">2.4h</td>
+            <td class="num">4.39GB</td>
+          </tr>
+          <tr>
+            <td><div class="pname"><span class="dot dot--ok"></span><span class="icon">G</span><span class="label">Google Chrome Helper (Renderer)</span></div></td>
+            <td class="num">3381</td>
+            <td class="num"><div class="cpu-cell"><span class="cpu-bar"><i style="width: 10%;"></i></span><span>9.6</span></div></td>
+            <td class="num">1.2h</td>
+            <td class="num">1.82GB</td>
+          </tr>
+          <tr>
+            <td><div class="pname"><span class="dot dot--ok"></span><span class="icon">T</span><span class="label">Tidy</span></div></td>
+            <td class="num">9021</td>
+            <td class="num"><div class="cpu-cell"><span class="cpu-bar"><i style="width: 4%;"></i></span><span>4.1</span></div></td>
+            <td class="num">0.3h</td>
+            <td class="num">192.0MB</td>
+          </tr>
+          <tr>
+            <td><div class="pname"><span class="dot dot--ok"></span><span class="icon">X</span><span class="label">Xcode</span></div></td>
+            <td class="num">2210</td>
+            <td class="num"><div class="cpu-cell"><span class="cpu-bar"><i style="width: 3%;"></i></span><span>3.2</span></div></td>
+            <td class="num">0.9h</td>
+            <td class="num">1.24GB</td>
+          </tr>
+          <tr>
+            <td><div class="pname"><span class="dot dot--warn"></span><span class="icon">⚙︎</span><span class="label">mds_stores</span></div></td>
+            <td class="num">388</td>
+            <td class="num"><div class="cpu-cell"><span class="cpu-bar"><i style="width: 3%;"></i></span><span>2.8</span></div></td>
+            <td class="num">0.7h</td>
+            <td class="num">146.3MB</td>
+          </tr>
+          <tr>
+            <td><div class="pname"><span class="dot dot--ok"></span><span class="icon">S</span><span class="label">Slack Helper (Renderer)</span></div></td>
+            <td class="num">5174</td>
+            <td class="num"><div class="cpu-cell"><span class="cpu-bar"><i style="width: 2%;"></i></span><span>1.9</span></div></td>
+            <td class="num">0.4h</td>
+            <td class="num">384.6MB</td>
+          </tr>
+          <tr>
+            <td><div class="pname"><span class="dot dot--ok"></span><span class="icon">⚙︎</span><span class="label">kernel_task</span></div></td>
+            <td class="num">0</td>
+            <td class="num"><div class="cpu-cell"><span class="cpu-bar"><i style="width: 2%;"></i></span><span>1.6</span></div></td>
+            <td class="num">—</td>
+            <td class="num">48.2MB</td>
+          </tr>
+          <tr>
+            <td><div class="pname"><span class="dot dot--ok"></span><span class="icon">F</span><span class="label">Finder</span></div></td>
+            <td class="num">611</td>
+            <td class="num"><div class="cpu-cell"><span class="cpu-bar"><i style="width: 1%;"></i></span><span>0.6</span></div></td>
+            <td class="num">0.1h</td>
+            <td class="num">96.4MB</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <p class="status-foot">macOS 15.1 (24B83) · Mikes-MacBook-Pro</p>
+  </div>
+</main>
+</body>
+</html>
