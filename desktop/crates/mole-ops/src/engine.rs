@@ -188,7 +188,7 @@ fn delete_error_code(e: &DeleteError) -> String {
         DeleteError::IdentityChanged => "identity-changed".into(),
         DeleteError::HelperUnavailable => "requires_admin".into(),
         DeleteError::PrivacyDenied => "privacy-denied".into(),
-        DeleteError::TrashFailed => "trash-failed".into(),
+        DeleteError::TrashFailed(detail) => format!("trash-failed:{detail}"),
         DeleteError::Io(err) => format!("io:{err}"),
     }
 }

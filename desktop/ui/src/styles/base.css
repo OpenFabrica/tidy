@@ -1130,6 +1130,37 @@ button.front-action-note:hover:not(:disabled) {
    ringed icon, live path, activity bar, three counters — inked in the paper
    palette. It is a floating card on purpose: the only state that is "in
    progress" rather than printed, so it is the one place a shadow appears. */
+/* Done page: items that were not removed, each with its reason. Paths
+   truncate so a long path never pushes the reason off-screen. */
+.exec-problems {
+  margin-top: 8px;
+  padding-bottom: 40px;
+}
+
+.exec-problems table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.exec-problems td {
+  font-size: 12.5px;
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px dotted var(--rule-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.exec-problems td.num {
+  width: 80px;
+  font: 12px/1.4 var(--font-mono);
+  text-align: right;
+}
+
+.exec-problems td.muted {
+  width: 42%;
+}
+
 .scan-stage {
   display: grid;
   place-items: center;

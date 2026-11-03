@@ -433,41 +433,50 @@ export interface ExecJob {
   selection: string[];
 }
 
-/** Stage 4: live execution feed, then the reclaimed-space page. Plans execute
- * strictly one after another (each through its own two-phase funnel); the
- * closing page shows the aggregated report. */
+/** Stage 4: the shared progress card (same look as the scan), then the
+ * reclaimed-space page. Plans execute strictly one after another (each
+ * through its own two-phase funnel); the closing page shows the aggregated
+ * report and lists only the items that did not go through, with a reason. */
 export function runExecution(
   body: HTMLElement,
   jobs: ExecJob[],
-  opts: Pick<FlowOptions, "trashOverride" | "execute" | "ledger" | "afterDone">,
+  opts: Pick<FlowOptions, "trashOverride" | "execute" | "ledger" | "afterDone" | "home">,
 ): void {
-  body.innerHTML = `
-    <div style="padding-top:30px">
-      <div class="led-head">
-        <span class="title">${t("flow.working")}</span>
-        <span class="aside" id="exec-line"></span>
-      </div>
-      <table><tbody id="exec-feed"></tbody></table>
-    </div>`;
-  const feed = body.querySelector<HTMLElement>("#exec-feed")!;
-  const line = body.querySelector<HTMLElement>("#exec-line")!;
+  // Deletion cannot be interrupted midway (each item is one atomic sink
+  // call), so the card has no cancel button; the meter is off because
+  // progress comes from per-item callbacks, not from a file walk.
+  const card = renderScanCard(body, {
+    home: opts.home,
+    stage: t("flow.working"),
+    title: t("flow.exec.title"),
+    pathLabel: t("flow.exec.current"),
+    hint: t("flow.exec.hint"),
+    meter: false,
+  });
   const total = jobs.reduce((n, j) => n + j.selection.length, 0);
   let done = 0;
+  let freedSoFar = 0;
   // Bytes that only moved to the Trash: they count as "freed" in the report
   // but stay on disk until the Trash is emptied, so the done page says so.
   let trashedKb = 0;
+  const problems: ExecItem[] = [];
 
+  const paint = () => {
+    card.setTile(0, t("flow.exec.progress"), `${done} / ${total}`);
+    card.setTile(1, t("flow.exec.freed"), humanKb(freedSoFar));
+    card.setProgress(total > 0 ? done / total : null);
+  };
+  paint();
+
+  // One line that keeps rolling to the item just handled, like the scan's
+  // path line — no growing per-item list.
   const onItem = (item: ExecItem) => {
     done += 1;
     if (item.outcome === "trashed") trashedKb += item.size_kb ?? 0;
-    line.textContent = `${done}/${total}`;
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td style="width:96px"><span class="badge ${badgeFor(item.outcome)}">${esc(item.outcome)}</span></td>
-      <td title="${esc(item.path)}">${esc(item.path)}</td>
-      <td class="num">${item.size_kb === null ? "" : humanKb(item.size_kb)}</td>
-      <td class="muted">${esc(item.error ?? "")}</td>`;
-    feed.prepend(row);
+    if (item.outcome === "trashed" || item.outcome === "removed") freedSoFar += item.size_kb ?? 0;
+    if (item.outcome === "failed" || item.outcome === "skipped") problems.push(item);
+    card.setLabel(item.path);
+    paint();
   };
 
   (async () => {
@@ -485,6 +494,7 @@ export function runExecution(
     return { freedKb, skipped, failed };
   })()
     .then(({ freedKb, skipped, failed }) => {
+      card.stop();
       // 卸载面只上报"发生过一次卸载"，清理面额外带删除模式；两者都不带
       // 数量和体积（隐私承诺）。失败数只用来分 ok/partial/failed 三档。
       if (surfaceOf(opts) === "apps") {
@@ -511,13 +521,15 @@ export function runExecution(
             <span>${t("flow.failed")} · ${failed}</span>
           </div>
           <button class="frame-cta" id="again">${t("clean.again")} →</button>
-        </div>`;
+        </div>
+        ${problemsHtml(problems, opts.home)}`;
       body.querySelector("#again")!.addEventListener("click", () => {
         window.dispatchEvent(new HashChangeEvent("hashchange"));
       });
       opts.afterDone?.(body, { freedKb, trashedKb });
     })
     .catch((e) => {
+      card.stop();
       if (surfaceOf(opts) !== "apps") {
         track({
           kind: "clean_executed",
@@ -538,11 +550,54 @@ export function runExecution(
     });
 }
 
-/** Badge color for an execution outcome. */
-export function badgeFor(outcome: string): string {
-  if (outcome === "trashed" || outcome === "removed" || outcome === "dry-run") return "ok";
-  if (outcome === "failed") return "danger";
-  return "warn";
+/** The done page's list of items that were not removed, each with a plain
+ * reason. Empty string when everything went through. */
+function problemsHtml(items: ExecItem[], home?: string): string {
+  if (items.length === 0) return "";
+  const rows = items
+    .map(
+      (item) => `<tr>
+        <td title="${esc(item.path)}">${esc(tildify(item.path, home))}</td>
+        <td class="num">${item.size_kb === null ? "" : humanKb(item.size_kb)}</td>
+        <td class="muted" title="${esc(item.error ?? "")}">${esc(failureReason(item))}</td>
+      </tr>`,
+    )
+    .join("");
+  return `
+    <div class="exec-problems">
+      <div class="led-head"><span class="title">${esc(t("flow.problems", { n: items.length }))}</span></div>
+      <table><tbody>${rows}</tbody></table>
+    </div>`;
+}
+
+/** Turn the backend's stable error code ("io:…", "trash-failed:…",
+ * "rejected:…") into a sentence the user can act on. Unknown codes are shown
+ * as-is so nothing is hidden. */
+export function failureReason(item: ExecItem): string {
+  const code = item.error ?? "";
+  const head = code.split(":")[0];
+  switch (head) {
+    case "whitelisted":
+      return t("flow.why.whitelisted");
+    case "rejected":
+      return t("flow.why.rejected");
+    case "requires_admin":
+      return t("flow.why.admin");
+    case "privacy-denied":
+      return t("flow.why.privacy");
+    case "mutable-parent":
+      return t("flow.why.mutableParent");
+    case "identity-changed":
+      return t("flow.why.changed");
+    case "trash-failed":
+      return t("flow.why.trash");
+    case "io":
+      if (/not permitted|permission denied/i.test(code)) return t("flow.why.denied");
+      if (/in use|busy/i.test(code)) return t("flow.why.busy");
+      return code.slice(3).trim();
+    default:
+      return code;
+  }
 }
 
 /** Re-exported for views composing their own headers. */

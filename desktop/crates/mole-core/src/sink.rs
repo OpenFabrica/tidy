@@ -73,8 +73,9 @@ pub enum DeleteError {
     HelperUnavailable,
     #[error("macOS privacy permission denied")]
     PrivacyDenied,
-    #[error("trash move failed")]
-    TrashFailed,
+    /// Carries the provider's message so the UI can say why.
+    #[error("trash move failed: {0}")]
+    TrashFailed(String),
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 }
@@ -176,12 +177,12 @@ pub fn delete(
                         .operation(&ctx.command, "SKIPPED", path, "privacy permission denied");
                     Err(DeleteError::PrivacyDenied)
                 }
-                Err(TrashError::Unavailable(_)) => {
+                Err(TrashError::Unavailable(detail)) => {
                     ctx.deletions_log
                         .record("trash", &size_kb, "trash-failed", path);
                     ctx.oplog
                         .operation(&ctx.command, "SKIPPED", path, "trash-failed");
-                    Err(DeleteError::TrashFailed)
+                    Err(DeleteError::TrashFailed(detail))
                 }
             }
         }

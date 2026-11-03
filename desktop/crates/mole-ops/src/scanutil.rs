@@ -592,13 +592,19 @@ fn list_one_level_raw(dir: &Path) -> (u64, u64, Vec<(std::ffi::OsString, u64)>) 
 }
 
 /// Build a candidate for an existing path: snapshot identity and measure size.
-/// None when the path is gone (raced away between listing and binding).
+/// None when the path is gone (raced away between listing and binding) or
+/// carries a flag nobody can override (see `flag_locked`): offering an item
+/// the sink is guaranteed to fail on only produces a "failed" row after
+/// confirm.
 pub fn make_candidate(
     path: &Path,
     section: &str,
     scope: Scope,
     cancel: &AtomicBool,
 ) -> Option<Candidate> {
+    if flag_locked(path) {
+        return None;
+    }
     let identity = identity::snapshot(path.to_str()?)?;
     let (size_kb, item_count) = dir_size_kb(path, cancel).ok()?;
     Some(Candidate {
@@ -610,6 +616,67 @@ pub fn make_candidate(
         section: section.to_string(),
         identity: Some(identity),
     })
+}
+
+// BSD file flags from <sys/stat.h> (not all exported by the libc crate).
+// Any of them makes unlink/rename fail with EPERM, even for root:
+// immutable/append-only, and SIP's `restricted` / `sunlnk` (what macOS puts
+// on daemon dirs such as /var/folders/../T/mobiletimerd).
+const UF_IMMUTABLE: u32 = 0x0000_0002;
+const UF_APPEND: u32 = 0x0000_0004;
+const SF_IMMUTABLE: u32 = 0x0002_0000;
+const SF_APPEND: u32 = 0x0004_0000;
+const SF_RESTRICTED: u32 = 0x0008_0000;
+const SF_NOUNLINK: u32 = 0x0010_0000;
+const UNREMOVABLE_FLAGS: u32 =
+    UF_IMMUTABLE | UF_APPEND | SF_IMMUTABLE | SF_APPEND | SF_RESTRICTED | SF_NOUNLINK;
+
+/// True when a BSD flag on `path` makes unlink/rename fail for every
+/// caller — root, the helper and Finder included. Unknown (stat fails) is
+/// not locked: the sink still decides, and a vanished path is "missing".
+pub fn flag_locked(path: &Path) -> bool {
+    use std::os::macos::fs::MetadataExt as _;
+    fs::symlink_metadata(path).is_ok_and(|m| m.st_flags() & UNREMOVABLE_FLAGS != 0)
+}
+
+/// Whether the current user, without elevation, may remove `path`. Checks the
+/// target only (not its whole tree), so it stays cheap:
+/// - the parent must be writable and searchable;
+/// - a directory must itself be writable and searchable (emptying it and
+///   moving it to another parent both need that);
+/// - in a sticky parent only the owner of the entry or of the parent may
+///   remove it.
+///
+/// A root-owned dir inside ~/Library/Logs fails here, and the privileged
+/// helper must not take it either: its parent is user-writable, which the
+/// sink's mutable-ancestor guard refuses on purpose.
+/// Unknown (stat fails) counts as removable, as in `flag_locked`.
+pub fn user_can_remove(path: &Path) -> bool {
+    let Ok(meta) = fs::symlink_metadata(path) else {
+        return true;
+    };
+    let can = |p: &Path, mode: libc::c_int| -> bool {
+        let Ok(c) = CString::new(p.as_os_str().as_bytes()) else {
+            return false;
+        };
+        // SAFETY: NUL-terminated path; access(2) only reads it. It answers
+        // for the real uid and honours ACLs, unlike a mode-bit check.
+        unsafe { libc::access(c.as_ptr(), mode) == 0 }
+    };
+    if let Some(parent) = path.parent() {
+        if !can(parent, libc::W_OK | libc::X_OK) {
+            return false;
+        }
+        // SAFETY: getuid never fails and has no preconditions.
+        let uid = unsafe { libc::getuid() };
+        if let Ok(pm) = fs::metadata(parent) {
+            let sticky = pm.mode() & libc::S_ISVTX as u32 != 0;
+            if sticky && meta.uid() != uid && pm.uid() != uid {
+                return false;
+            }
+        }
+    }
+    !meta.is_dir() || can(path, libc::W_OK | libc::X_OK)
 }
 
 /// Session-unique candidate id: monotonic counter, no RNG dependency.
@@ -637,6 +704,52 @@ mod tests {
     /// The pool tracks the machine: never more than 8/10 of the cores, never
     /// more jobs than exist, and never zero. Walks stay at Utility QoS, which
     /// is what keeps the budget off the performance cores.
+    #[test]
+    fn own_files_and_dirs_are_removable() {
+        let (_tmp, root) = fixture();
+        assert!(user_can_remove(&root));
+        assert!(!flag_locked(&root));
+        assert!(user_can_remove(&root.join("f1")));
+        // Gone paths stay with the sink ("missing"), not filtered here.
+        assert!(user_can_remove(&root.join("never-existed")));
+        assert!(!flag_locked(&root.join("never-existed")));
+    }
+
+    #[test]
+    fn flagged_target_is_never_a_candidate() {
+        let (_tmp, root) = fixture();
+        // uchg (user immutable) can be set without root and fails unlink the
+        // same way SIP's sunlnk/restricted does.
+        let locked = root.join("f1");
+        let c = CString::new(locked.as_os_str().as_bytes()).unwrap();
+        // SAFETY: valid NUL-terminated path.
+        assert_eq!(unsafe { libc::chflags(c.as_ptr(), UF_IMMUTABLE) }, 0);
+        let cancel = AtomicBool::new(false);
+        let blocked = flag_locked(&locked);
+        let candidate = make_candidate(&locked, "t", Scope::System, &cancel);
+        // SAFETY: as above; clear the flag so the tempdir can be cleaned up.
+        unsafe { libc::chflags(c.as_ptr(), 0) };
+        assert!(blocked);
+        assert!(candidate.is_none());
+    }
+
+    #[test]
+    fn unwritable_dir_is_dropped_from_clean_only() {
+        use std::os::unix::fs::PermissionsExt;
+        let (_tmp, root) = fixture();
+        let ro = root.join("a");
+        fs::set_permissions(&ro, fs::Permissions::from_mode(0o555)).unwrap();
+        let cancel: CancelFlag = Arc::new(AtomicBool::new(false));
+        let can = user_can_remove(&ro);
+        let clean = parallel_candidates(std::slice::from_ref(&ro), "t", Scope::User, &cancel);
+        let direct = make_candidate(&ro, "t", Scope::User, &cancel);
+        fs::set_permissions(&ro, fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(!can);
+        assert!(clean.is_empty());
+        // Finder-routed surfaces keep it (Finder can ask for a password).
+        assert!(direct.is_some());
+    }
+
     #[test]
     fn scan_worker_pool_follows_cpu_count() {
         let cores = std::thread::available_parallelism()
@@ -819,6 +932,12 @@ mod tests {
 /// Measure many paths in parallel with a bounded worker pool; order preserved.
 /// Cancelled scans yield None entries so partial results cannot masquerade as
 /// complete candidates.
+///
+/// This is the Clean page's builder. User-scope items the user cannot remove
+/// without elevation are dropped here: Clean may run in permanent mode, where
+/// nothing can elevate them, so listing them only produces failures. (Other
+/// surfaces use `make_candidate` directly and keep such items, because their
+/// Finder Trash route can ask for an admin password — e.g. App Store apps.)
 pub fn parallel_candidates(
     paths: &[std::path::PathBuf],
     section: &str,
@@ -839,7 +958,11 @@ pub fn parallel_candidates(
                     if cancel.load(Ordering::Relaxed) {
                         break;
                     }
-                    let candidate = make_candidate(&path, section, scope, cancel);
+                    let candidate = if scope == Scope::User && !user_can_remove(&path) {
+                        None
+                    } else {
+                        make_candidate(&path, section, scope, cancel)
+                    };
                     results.lock().unwrap()[idx] = candidate;
                 }
             });
